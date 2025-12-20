@@ -2,7 +2,7 @@ use bevy::prelude::Component;
 use std::ops::Not;
 
 #[derive(Component)]
-struct Chunk {
+pub struct Chunk {
     blocks: Vec<Block>,
 }
 
@@ -13,7 +13,7 @@ struct Chunk {
 /// lsb  ``u10: id``
 #[repr(transparent)]
 #[derive(Default, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
-struct Block(u16);
+pub struct Block(u16);
 
 impl Block {
     pub const ID_MASK: u16 = 0x3FF; // Bottom 10 bits
@@ -61,13 +61,13 @@ impl Block {
                 (id & Self::ID_MASK);
     }
 
-    pub fn set_variant(&mut self, variant: u8) {
+    pub fn set_variant(&mut self, variant: u16) {
         self.0 = (self.0 & !Self::VARIANT_MASK) |
-            ((variant << 10) as u16 & Self::VARIANT_MASK);
+            ((variant << 10) & Self::VARIANT_MASK);
     }
 
-    pub fn set_orientation(&mut self, orientation: u8) {
+    pub fn set_orientation(&mut self, orientation: u16) {
         self.0 = (self.0 & !Self::ORIENTATION_MASK) |
-            ((orientation << 10) as u16 & Self::ORIENTATION_MASK);
+            ((orientation << 10) & Self::ORIENTATION_MASK);
     }
 }
