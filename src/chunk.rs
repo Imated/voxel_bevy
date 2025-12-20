@@ -1,4 +1,5 @@
-﻿use bevy::prelude::Component;
+use bevy::prelude::Component;
+use std::ops::Not;
 
 #[derive(Component)]
 struct Chunk {
@@ -15,60 +16,58 @@ struct Chunk {
 struct Block(u16);
 
 impl Block {
+    pub const ID_MASK: u16 = 0x3FF; // Bottom 10 bits
+    pub const VARIANT_MASK: u16 = 0x1C00; // Bits 10-12
+    pub const ORIENTATION_MASK: u16 = 0xE000; // Last 3 bits
+
     pub fn new(data: u16) -> Block {
         Self(data)
     }
 
     pub fn from_id(id: u16) -> Block {
-        let data = id & 0b0000001111111111; // Bottom 10 bits of input id, orientation + variant all 0
+        let data = id & 0x3FF;
 
         Self(data)
     }
 
-    pub fn from_id_variant(id: u16, variant: u8) -> Block {
-        let id = id & 0b0000001111111111; // Bottom 10 bits of input id
-        let variant = variant & 0b00000111; // Bottom 3b of variant
-        let data = id | ((variant as u16) << 10); // Place all values after each other
+    pub fn from_id_variant(id: u16, variant: u16) -> Block {
+        let data = (id & Self::ID_MASK) | ((variant << 10) & Self::VARIANT_MASK);
 
         Self(data)
     }
 
-    pub fn from_id_variant_orientation(id: u16, variant: u8, orientation: u8) -> Block  {
-        let id = id & 0b0000001111111111; // Bottom 10 bits of input id
-        let variant = variant & 0b00000111; // Bottom 3b of variant
-        let orientation = orientation & 0b00000111; // Bottom 3b of orientation
-        let data = id | ((variant as u16) << 10) | ((orientation as u16) << 13); // Place all values after each other
+    pub fn from_id_variant_orientation(id: u16, variant: u16, orientation: u16) -> Block {
+        let data = (id & Self::ID_MASK)
+            | ((variant << 10) & Self::VARIANT_MASK)
+            | ((orientation << 13) & Self::ORIENTATION_MASK);
 
         Self(data)
     }
 
     pub fn id(&self) -> u16 {
-        self.0 & 0b0000001111111111
+        self.0 & Self::ID_MASK
     }
 
     pub fn variant(&self) -> u8 {
-        ((self.0 >> 10) & 0b00000111) as u8
+        ((self.0 & Self::VARIANT_MASK) >> 10) as u8
     }
 
     pub fn orientation(&self) -> u8 {
-        ((self.0 >> 13) & 0b00000111) as u8
+        ((self.0 & Self::ORIENTATION_MASK) >> 13) as u8
     }
 
     pub fn set_id(&mut self, id: u16) {
-        self.0 =
-            (self.0 & 0b1111110000000000) | // keep variant + orientation, clear id
-                (id & 0b0000001111111111);
+        self.0 = (self.0 & !Self::ID_MASK) |
+                (id & Self::ID_MASK);
     }
 
     pub fn set_variant(&mut self, variant: u8) {
-        self.0 =
-            (self.0 & 0b1110001111111111) | // clear bits 10–12
-                (((variant & 0b00000111) as u16) << 10);
+        self.0 = (self.0 & !Self::VARIANT_MASK) |
+            ((variant << 10) as u16 & Self::VARIANT_MASK);
     }
 
     pub fn set_orientation(&mut self, orientation: u8) {
-        self.0 =
-            (self.0 & 0b0001111111111111) | // clear bits 13–15
-                (((orientation & 0b00000111) as u16) << 13);
+        self.0 = (self.0 & !Self::ORIENTATION_MASK) |
+            ((orientation << 10) as u16 & Self::ORIENTATION_MASK);
     }
 }
