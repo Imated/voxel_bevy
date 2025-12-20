@@ -1,7 +1,10 @@
+use std::num::NonZeroU8;
 use bevy::prelude::Component;
-use std::ops::Not;
 
-#[derive(Component)]
+pub const CHUNK_SIZE: u8 = 16;
+pub const CHUNK_HEIGHT: u8 = 255;
+
+#[derive(Component, Default, Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Chunk {
     blocks: Vec<Block>,
 }
@@ -25,7 +28,7 @@ impl Block {
     }
 
     pub fn from_id(id: u16) -> Block {
-        let data = id & 0x3FF;
+        let data = id & Self::ID_MASK;
 
         Self(data)
     }
