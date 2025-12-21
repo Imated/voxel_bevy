@@ -5,6 +5,7 @@ use bevy::camera::Camera3dDepthLoadOp;
 use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::prelude::*;
 use std::hint::unreachable_unchecked;
+use bevy::math::ops::sqrt;
 
 #[derive(Default)]
 pub struct ChunkRenderPlugin;
@@ -17,7 +18,7 @@ impl Plugin for ChunkRenderPlugin {
 }
 
 impl ChunkRenderPlugin {
-    fn add_face(coords: Vec3, face: i32, vertices: &mut Vec<[f32; 3]>, indices: &mut Vec<u16>) {
+    fn add_face(coords: Vec3, face: i32, vertices: &mut Vec<[f32; 3]>, normals: &mut Vec<[f32; 3]>, indices: &mut Vec<u16>) {
         let base = vertices.len() as u16;
         match face {
             0 => {
@@ -26,6 +27,10 @@ impl ChunkRenderPlugin {
                 vertices.push([coords.x, coords.y + 1., coords.z + 1.]);
                 vertices.push([coords.x + 1., coords.y + 1., coords.z + 1.]);
                 vertices.push([coords.x + 1., coords.y + 1., coords.z]);
+                normals.push([0.0, 1.0, 0.0]);
+                normals.push([0.0, 1.0, 0.0]);
+                normals.push([0.0, 1.0, 0.0]);
+                normals.push([0.0, 1.0, 0.0]);
             }
             1 => {
                 // Bottom
@@ -33,6 +38,10 @@ impl ChunkRenderPlugin {
                 vertices.push([coords.x + 1., coords.y, coords.z]);
                 vertices.push([coords.x + 1., coords.y, coords.z + 1.]);
                 vertices.push([coords.x, coords.y, coords.z + 1.]);
+                normals.push([0.0, -1.0, 0.0]);
+                normals.push([0.0, -1.0, 0.0]);
+                normals.push([0.0, -1.0, 0.0]);
+                normals.push([0.0, -1.0, 0.0]);
             }
             2 => {
                 // Left
@@ -40,6 +49,10 @@ impl ChunkRenderPlugin {
                 vertices.push([coords.x, coords.y, coords.z + 1.]);
                 vertices.push([coords.x, coords.y + 1., coords.z + 1.]);
                 vertices.push([coords.x, coords.y + 1., coords.z]);
+                normals.push([-1.0, 0.0, 0.0]);
+                normals.push([-1.0, 0.0, 0.0]);
+                normals.push([-1.0, 0.0, 0.0]);
+                normals.push([-1.0, 0.0, 0.0]);
             }
             3 => {
                 // Right
@@ -47,6 +60,10 @@ impl ChunkRenderPlugin {
                 vertices.push([coords.x + 1., coords.y, coords.z]);
                 vertices.push([coords.x + 1., coords.y + 1., coords.z]);
                 vertices.push([coords.x + 1., coords.y + 1., coords.z + 1.]);
+                normals.push([1.0, 0.0, 0.0]);
+                normals.push([1.0, 0.0, 0.0]);
+                normals.push([1.0, 0.0, 0.0]);
+                normals.push([1.0, 0.0, 0.0]);
             }
             4 => {
                 // Front
@@ -54,6 +71,10 @@ impl ChunkRenderPlugin {
                 vertices.push([coords.x + 1., coords.y, coords.z + 1.]);
                 vertices.push([coords.x + 1., coords.y + 1., coords.z + 1.]);
                 vertices.push([coords.x, coords.y + 1., coords.z + 1.]);
+                normals.push([0.0, 0.0, 1.0]);
+                normals.push([0.0, 0.0, 1.0]);
+                normals.push([0.0, 0.0, 1.0]);
+                normals.push([0.0, 0.0, 1.0]);
             }
             5 => {
                 // Back
@@ -61,6 +82,10 @@ impl ChunkRenderPlugin {
                 vertices.push([coords.x, coords.y, coords.z]);
                 vertices.push([coords.x, coords.y + 1., coords.z]);
                 vertices.push([coords.x + 1., coords.y + 1., coords.z]);
+                normals.push([0.0, 0.0, -1.0]);
+                normals.push([0.0, 0.0, -1.0]);
+                normals.push([0.0, 0.0, -1.0]);
+                normals.push([0.0, 0.0, -1.0]);
             }
             _ => unsafe { unreachable_unchecked() },
         }
@@ -74,7 +99,7 @@ impl ChunkRenderPlugin {
 
     fn generate_chunk_mesh(chunk: &Chunk) -> Mesh {
         let mut vertices = Vec::new();
-        //let mut normals = Vec::new();
+        let mut normals = Vec::new();
         let mut indices = Vec::new();
         for i in 0..CHUNK_SIZE * CHUNK_SIZE * CHUNK_HEIGHT {
             let coords = Chunk::coords_by_index(i);
@@ -95,7 +120,7 @@ impl ChunkRenderPlugin {
 
             for face in 0..6 {
                 if neighbors[face] == Block(0) {
-                    Self::add_face(coords.as_vec3(), face as i32, &mut vertices, &mut indices);
+                    Self::add_face(coords.as_vec3(), face as i32, &mut vertices, &mut normals, &mut indices);
                 }
             }
         }
@@ -105,7 +130,7 @@ impl ChunkRenderPlugin {
             RenderAssetUsages::RENDER_WORLD,
         );
         mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
-        //mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+        mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
         mesh.insert_indices(Indices::U16(indices));
 
         mesh
@@ -115,8 +140,11 @@ impl ChunkRenderPlugin {
         let mut chunk = Chunk::new();
         for i in 0..CHUNK_SIZE * CHUNK_SIZE * CHUNK_HEIGHT {
             let coords = Chunk::coords_by_index(i);
+            let dx = coords.x as f32;
+            let dy = coords.y as f32;
+            let dz = coords.z as f32;
 
-            let voxel = if coords.x < 4 && coords.y < 4 && coords.z < 4 {
+            let voxel = if dx*dx + dy*dy + dz*dz < 64.0 {
                 Block(1)
             } else {
                 Block(0)
@@ -125,6 +153,11 @@ impl ChunkRenderPlugin {
             chunk.set_by_index(i, voxel);
         }
         commands.spawn((Transform::from_xyz(0., 0., 0.), chunk));
+        commands.spawn((Transform::from_xyz(10.0, 10.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y), DirectionalLight {
+            illuminance: 2_500.0,
+            shadows_enabled: false,
+            ..default()
+        }));
     }
 
     pub fn render_chunks(
@@ -136,9 +169,12 @@ impl ChunkRenderPlugin {
         for (entity, chunk) in query {
             let mut chunk_entity = commands.entity(entity);
             let chunk_mesh = meshes.add(Self::generate_chunk_mesh(chunk));
-            let chunk_material = materials.add(StandardMaterial::from_color(Color::Hsva(
-                Hsva::hsv(97.8, 60.3, 96.9),
-            )));
+            let chunk_material = materials.add(StandardMaterial {
+                base_color: Color::Hsva(Hsva::hsv(97.8, 0.6, 0.97)),
+                perceptual_roughness: 0.9,
+                metallic: 0.0,
+                ..default()
+            });
             chunk_entity.insert((Mesh3d(chunk_mesh), MeshMaterial3d(chunk_material)));
         }
     }
