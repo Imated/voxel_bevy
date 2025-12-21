@@ -120,10 +120,6 @@ impl ChunkRenderPlugin {
             chunk.set_by_index(i, voxel);
         }
         commands.spawn((Transform::from_xyz(0., 0., 0.), chunk));
-        commands.spawn((
-            Camera3d::default(),
-            Transform::from_xyz(0.0, 7.0, 14.0).looking_at(Vec3::new(0., 1., 0.), Vec3::Y),
-        ));
     }
 
     pub fn render_chunks(
