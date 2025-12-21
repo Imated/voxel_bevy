@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bevy = { version = "0.17.3", default-features = false, features = ["bevy_render", "bevy_image", "bevy_camera", "bevy_window", "bevy_winit", "png", "bevy_pbr", "debug", "tonemapping_luts", "zstd_rust", "bevy_light"] }
+bevy = { version = "0.17.3", default-features = false, features = ["bevy_render", "bevy_image", "bevy_camera", "bevy_window", "bevy_winit", "png", "bevy_pbr", "debug", "tonemapping_luts", "zstd_rust", "bevy_light", "bevy_post_process"] }
 bevy_flycam = "0.17.0"
 pretty_env_logger = "0.5.0"
