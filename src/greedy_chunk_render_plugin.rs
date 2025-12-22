@@ -118,7 +118,7 @@ impl GreedyChunkRenderPlugin {
             normals.extend(norms);
         }
 
-        //println!("{:?}", Instant::now() - start);
+        //info!("{:?}", Instant::now() - start);
 
         let mut mesh = Mesh::new(
             PrimitiveTopology::TriangleList,

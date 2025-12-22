@@ -8,6 +8,7 @@ use crate::chunk_render_plugin::ChunkRenderPlugin;
 use bevy::app::{App, PluginGroup};
 use bevy::color::palettes::basic::WHITE;
 use bevy::DefaultPlugins;
+use bevy::log::LogPlugin;
 use bevy::pbr::wireframe::{WireframeConfig, WireframePlugin};
 use bevy::prelude::default;
 use bevy::render::render_resource::WgpuFeatures;
@@ -17,7 +18,6 @@ use bevy_flycam::PlayerPlugin;
 use crate::greedy_chunk_render_plugin::GreedyChunkRenderPlugin;
 
 fn main() {
-    pretty_env_logger::init();
     App::new()
         .add_plugins((
             DefaultPlugins.set(RenderPlugin {

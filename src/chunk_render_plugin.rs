@@ -5,6 +5,7 @@ use bevy::camera::Camera3dDepthLoadOp;
 use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::prelude::*;
 use std::hint::unreachable_unchecked;
+use std::time::Instant;
 use bevy::math::ops::sqrt;
 use crate::block::Block;
 
@@ -99,6 +100,7 @@ impl ChunkRenderPlugin {
     }
 
     fn generate_chunk_mesh(chunk: &Chunk) -> Mesh {
+        let start = Instant::now();
         let mut vertices = Vec::new();
         let mut normals = Vec::new();
         let mut indices = Vec::new();
@@ -125,6 +127,8 @@ impl ChunkRenderPlugin {
                 }
             }
         }
+
+       // println!("{:?}", Instant::now() - start);
 
         let mut mesh = Mesh::new(
             PrimitiveTopology::TriangleList,
