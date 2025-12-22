@@ -1,4 +1,4 @@
-use crate::chunk::{Block, CHUNK_HEIGHT, CHUNK_SIZE, Chunk};
+use crate::chunk::{CHUNK_HEIGHT, CHUNK_SIZE, Chunk};
 use bevy::app::App;
 use bevy::asset::RenderAssetUsages;
 use bevy::camera::Camera3dDepthLoadOp;
@@ -6,6 +6,7 @@ use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::prelude::*;
 use std::hint::unreachable_unchecked;
 use bevy::math::ops::sqrt;
+use crate::block::Block;
 
 #[derive(Default)]
 pub struct ChunkRenderPlugin;

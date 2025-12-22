@@ -1,5 +1,8 @@
 mod chunk;
 mod chunk_render_plugin;
+mod greedy_chunk_render_plugin;
+mod quad;
+mod block;
 
 use crate::chunk_render_plugin::ChunkRenderPlugin;
 use bevy::app::{App, PluginGroup};
@@ -11,6 +14,7 @@ use bevy::render::render_resource::WgpuFeatures;
 use bevy::render::RenderPlugin;
 use bevy::render::settings::{RenderCreation, WgpuSettings};
 use bevy_flycam::PlayerPlugin;
+use crate::greedy_chunk_render_plugin::GreedyChunkRenderPlugin;
 
 fn main() {
     pretty_env_logger::init();
@@ -30,7 +34,8 @@ fn main() {
             global: true,
             default_color: WHITE.into(),
         })
-        .add_plugins(ChunkRenderPlugin::default())
+        //.add_plugins(ChunkRenderPlugin::default())
+        .add_plugins(GreedyChunkRenderPlugin::default())
         .add_plugins(PlayerPlugin)
         .run();
 }
