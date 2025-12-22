@@ -35,8 +35,6 @@ impl GreedyChunkRenderPlugin {
                 let height_mask = u16::checked_shl(1, height).map_or(!0, |v| v - 1);
                 let mask = height_mask << y;
 
-                data[row] &= !mask;
-
                 let mut w = 1;
                 while row + w < CHUNK_SIZE as usize {
                     let next_row_height = (data[row + w] >> y) & height_mask;
