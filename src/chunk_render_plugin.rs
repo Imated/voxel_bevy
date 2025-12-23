@@ -1,13 +1,11 @@
-use crate::chunk::{CHUNK_HEIGHT, CHUNK_SIZE, Chunk};
+use crate::block::Block;
+use crate::chunk::{CHUNK_SIZE3, Chunk};
 use bevy::app::App;
 use bevy::asset::RenderAssetUsages;
-use bevy::camera::Camera3dDepthLoadOp;
 use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::prelude::*;
 use std::hint::unreachable_unchecked;
 use std::time::Instant;
-use bevy::math::ops::sqrt;
-use crate::block::Block;
 
 #[derive(Default)]
 pub struct ChunkRenderPlugin;
@@ -20,7 +18,13 @@ impl Plugin for ChunkRenderPlugin {
 }
 
 impl ChunkRenderPlugin {
-    fn add_face(coords: Vec3, face: i32, vertices: &mut Vec<[f32; 3]>, normals: &mut Vec<[f32; 3]>, indices: &mut Vec<u16>) {
+    fn add_face(
+        coords: Vec3,
+        face: i32,
+        vertices: &mut Vec<[f32; 3]>,
+        normals: &mut Vec<[f32; 3]>,
+        indices: &mut Vec<u16>,
+    ) {
         let base = vertices.len() as u16;
         match face {
             0 => {
@@ -104,7 +108,7 @@ impl ChunkRenderPlugin {
         let mut vertices = Vec::new();
         let mut normals = Vec::new();
         let mut indices = Vec::new();
-        for i in 0..CHUNK_SIZE * CHUNK_SIZE * CHUNK_HEIGHT {
+        for i in 0..CHUNK_SIZE3 {
             let coords = Chunk::coords_by_index(i);
             let block = chunk.get_by_index(i);
             if block == Block(0) {
@@ -123,12 +127,18 @@ impl ChunkRenderPlugin {
 
             for face in 0..6 {
                 if neighbors[face] == Block(0) {
-                    Self::add_face(coords.as_vec3(), face as i32, &mut vertices, &mut normals, &mut indices);
+                    Self::add_face(
+                        coords.as_vec3(),
+                        face as i32,
+                        &mut vertices,
+                        &mut normals,
+                        &mut indices,
+                    );
                 }
             }
         }
 
-       // println!("{:?}", Instant::now() - start);
+        // println!("{:?}", Instant::now() - start);
 
         let mut mesh = Mesh::new(
             PrimitiveTopology::TriangleList,
@@ -143,13 +153,13 @@ impl ChunkRenderPlugin {
 
     pub fn test_gen_chunks(mut commands: Commands) {
         let mut chunk = Chunk::new();
-        for i in 0..CHUNK_SIZE * CHUNK_SIZE * CHUNK_HEIGHT {
+        for i in 0..CHUNK_SIZE3 {
             let coords = Chunk::coords_by_index(i);
             let dx = coords.x as f32;
             let dy = coords.y as f32;
             let dz = coords.z as f32;
 
-            let voxel = if dx*dx + dy*dy + dz*dz < 64.0 {
+            let voxel = if dx * dx + dy * dy + dz * dz < 64.0 {
                 Block(1)
             } else {
                 Block(0)
@@ -158,11 +168,14 @@ impl ChunkRenderPlugin {
             chunk.set_by_index(i, voxel);
         }
         commands.spawn((Transform::from_xyz(0., 0., 0.), chunk));
-        commands.spawn((Transform::from_xyz(10.0, 10.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y), DirectionalLight {
-            illuminance: 2_500.0,
-            shadows_enabled: false,
-            ..default()
-        }));
+        commands.spawn((
+            Transform::from_xyz(10.0, 10.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
+            DirectionalLight {
+                illuminance: 2_500.0,
+                shadows_enabled: false,
+                ..default()
+            },
+        ));
     }
 
     pub fn render_chunks(

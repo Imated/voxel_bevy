@@ -1,13 +1,13 @@
-﻿use std::mem::transmute;
-use std::time::Instant;
-use crate::block::{Block, MAX_BLOCK_ID};
-use crate::chunk::{Chunk, CHUNK_HEIGHT, CHUNK_SIZE};
+use crate::block::Block;
+use crate::chunk::{Chunk, CHUNK_SIZE, CHUNK_SIZE3, PADDED_CHUNK_SIZE, PADDED_CHUNK_SIZE2, PADDED_CHUNK_SIZE2_USIZE, PADDED_CHUNK_SIZE3, PADDED_CHUNK_SIZE3_USIZE, PADDED_CHUNK_SIZE_USIZE};
 use crate::quad::{Direction, GreedyQuad};
 use bevy::app::App;
 use bevy::asset::RenderAssetUsages;
 use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::prelude::*;
 use bevy::reflect::Array;
+use std::collections::HashMap;
+use std::time::Instant;
 
 #[derive(Default)]
 pub struct GreedyChunkRenderPlugin;
@@ -60,30 +60,89 @@ impl GreedyChunkRenderPlugin {
         greedy_quads
     }
 
-    fn vertices_from_face(direction: Direction, chunk: &Chunk) -> (Vec<[f32; 3]>, Vec<[f32; 3]>) {
+    fn vertices_from_face(chunk: &Chunk) -> (Vec<[f32; 3]>, Vec<[f32; 3]>) {
         let mut vertices = vec![];
         let mut normals = vec![];
-        for axis in 0..CHUNK_SIZE {
-            for block_type in 0..MAX_BLOCK_ID {
-                if !Block(block_type as u16).is_solid() {
-                    continue;
-                }
-                let mut x_data = [0u16; 16];
-                for i in 0..CHUNK_SIZE * CHUNK_SIZE {
-                    let row = i % CHUNK_SIZE;
-                    let column = i / CHUNK_SIZE;
-                    let pos = direction.world_to_sample(axis, row, column);
-                    let (current, in_front) = chunk.get_2(pos, direction.direction_in_front());
-                    // dont merge if dif block types
-                    if current != Block(block_type as u16) {
-                        continue;
+
+        // solid voxels as binary per axis x, y, z
+        let mut solid_voxels_per_axis = vec![0u64; (3 * PADDED_CHUNK_SIZE3_USIZE)];
+        // cull mask for greedy slicing based on solids on previous axis column
+        let mut voxels_face_mask = [[[0u64; PADDED_CHUNK_SIZE_USIZE]; PADDED_CHUNK_SIZE_USIZE]; 6];
+
+        for y in 0..PADDED_CHUNK_SIZE_USIZE {
+            for z in 0..PADDED_CHUNK_SIZE_USIZE {
+                for x in 0..PADDED_CHUNK_SIZE_USIZE {
+                    let block = chunk.get_by_xyz(x as i32 - 1, y as i32 - 1, z as i32 - 1);
+                    if block.is_solid() {
+                        solid_voxels_per_axis[x + z * PADDED_CHUNK_SIZE_USIZE] |= 1u64 << y;
+                        solid_voxels_per_axis[z + y * PADDED_CHUNK_SIZE_USIZE + PADDED_CHUNK_SIZE2_USIZE] |= 1u64 << x;
+                        solid_voxels_per_axis[x + y * PADDED_CHUNK_SIZE_USIZE + PADDED_CHUNK_SIZE2_USIZE * 2] |= 1u64 << z;
                     }
-                    let is_solid = current.is_solid() && !in_front.is_solid();
-                    x_data[row as usize] |= (is_solid as u16) << column;
                 }
-                let quads_from_axis = Self::greedy_mesh_binary_plane(x_data);
-                quads_from_axis.into_iter().for_each(|quad| quad.append_vertices(&mut vertices, &mut normals, direction, axis as u32))
             }
+        }
+
+        //face cull
+        for axis in 0..3usize {
+            for z in 0..PADDED_CHUNK_SIZE_USIZE {
+                for x in 0..PADDED_CHUNK_SIZE_USIZE {
+                    let i = z * PADDED_CHUNK_SIZE_USIZE + x;
+                    let col = solid_voxels_per_axis[(PADDED_CHUNK_SIZE2_USIZE * axis) + i];
+                    // sample ascending/descending axes and set true if air meets solid aka need to draw face.
+                    voxels_face_mask[2 * axis + 1][z][x] = col & !(col >> 1);
+                    voxels_face_mask[2 * axis + 0][z][x] = col & !(col << 1);
+                }
+            }
+        }
+
+        // (axis, block, y) -> binary plane
+        let mut data: HashMap<(u8, Block, u16), [u16; 16]> = Default::default();
+
+        for axis in 0..6 {
+            for z in 0..CHUNK_SIZE as usize {
+                for x in 0..CHUNK_SIZE as usize {
+                    // skip padded by adding 1(for x padding) and (z+1) for (z padding)
+                    let mut col = voxels_face_mask[axis][z + 1][x + 1];
+
+                    // remove right most out of chunk bounds value
+                    col >>= 1;
+                    // remove left most out of chunk bounds value
+                    col &= !(1 << CHUNK_SIZE);
+
+                    while col != 0 {
+                        let y = col.trailing_zeros();
+                        // clear last set bit
+                        col &= col - 1;
+
+                        let voxel_pos = match axis {
+                            0 | 1 => ivec3(x as i32, y as i32, z as i32), // down | up
+                            2 | 3 => ivec3(y as i32, z as i32, x as i32), // left | right
+                            _ => ivec3(x as i32, z as i32, y as i32), // forward | back
+                        };
+
+                        let block = chunk.get(voxel_pos);
+                        //let key = (axis, block, y);
+                        let data = data.entry((axis as u8, block, y as u16)).or_default();
+                        data[x] |= 1u16 << z as u16;
+                    }
+                }
+            }
+        }
+
+        for (&(axis, block, axis_pos), &plane) in data.iter() {
+            let face_dir = match axis {
+                0 => Direction::Down,
+                1 => Direction::Up,
+                2 => Direction::Left,
+                3 => Direction::Right,
+                4 => Direction::Forward,
+                _ => Direction::Back,
+            };
+            let quads_from_axis = Self::greedy_mesh_binary_plane(plane);
+
+            quads_from_axis.into_iter().for_each(|q| {
+                q.append_vertices(&mut vertices, &mut normals, face_dir, axis_pos as i32);
+            });
         }
 
         (vertices, normals)
@@ -110,11 +169,9 @@ impl GreedyChunkRenderPlugin {
         let mut vertices = vec![];
         let mut normals = vec![];
 
-        for direction in [Direction::Up, Direction::Down, Direction::Left, Direction::Right, Direction::Forward, Direction::Back] {
-            let (verts, norms) = Self::vertices_from_face(direction, &chunk);
-            vertices.extend(verts);
-            normals.extend(norms);
-        }
+        let (verts, norms) = Self::vertices_from_face(&chunk);
+        vertices.extend(verts);
+        normals.extend(norms);
 
         //info!("{:?}", Instant::now() - start);
 
@@ -131,11 +188,11 @@ impl GreedyChunkRenderPlugin {
 
     pub fn test_gen_chunks(mut commands: Commands) {
         let mut chunk = Chunk::new();
-        for i in 0..CHUNK_SIZE * CHUNK_SIZE * CHUNK_HEIGHT {
+        for i in 0..CHUNK_SIZE3 {
             let coords = Chunk::coords_by_index(i);
-            let dx = coords.x as f32;
-            let dy = coords.y as f32;
-            let dz = coords.z as f32;
+            let dx = coords.x as f32 - 8.0;
+            let dy = coords.y as f32 - 8.0;
+            let dz = coords.z as f32 - 8.0;
 
             let voxel = if dx*dx + dy*dy + dz*dz < 64.0 {
                 Block(1)
@@ -145,7 +202,25 @@ impl GreedyChunkRenderPlugin {
 
             chunk.set_by_index(i, voxel);
         }
-        commands.spawn((Transform::from_xyz(0., 0., 0.), chunk));
+        //let mut chunk_2 = Chunk::new();
+        //for i in 0..CHUNK_SIZE3 {
+        //    let coords = Chunk::coords_by_index(i);
+        //    let dx = coords.x as f32 - 8.0;
+        //    let dy = coords.y as f32 - 8.0;
+        //    let dz = coords.z as f32 - 8.0;
+        //
+        //    let voxel = if dx*dx + dy*dy < 64.0 {
+        //        Block(1)
+        //    } else {
+        //        Block(0)
+        //    };
+        //
+        //    chunk_2.set_by_index(i, voxel);
+        //}
+
+        commands.spawn((Transform::from_xyz(0., 0., 0.), chunk.clone()));
+        //commands.spawn((Transform::from_xyz(16., 0., 0.), chunk));
+        //commands.spawn((Transform::from_xyz(8., 0., 16.), chunk_2));
         commands.spawn((Transform::from_xyz(10.0, 10.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y), DirectionalLight {
             illuminance: 2_500.0,
             shadows_enabled: false,

@@ -8,7 +8,7 @@ pub const MAX_BLOCK_ID: usize = 3;
 ///      ``u3: variant``
 /// lsb  ``u10: id``
 #[repr(transparent)]
-#[derive(Default, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Default, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct Block(pub u16);
 
 impl Block {
