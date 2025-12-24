@@ -12,8 +12,7 @@ pub struct ChunkRenderPlugin;
 
 impl Plugin for ChunkRenderPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, Self::render_chunks)
-            .add_systems(Startup, Self::test_gen_chunks);
+        app.add_systems(Startup, Self::test_gen_chunks);
     }
 }
 
@@ -153,21 +152,7 @@ impl ChunkRenderPlugin {
 
     pub fn test_gen_chunks(mut commands: Commands) {
         let mut chunk = Chunk::new();
-        for i in 0..CHUNK_SIZE3 {
-            let coords = Chunk::coords_by_index(i);
-            let dx = coords.x as f32;
-            let dy = coords.y as f32;
-            let dz = coords.z as f32;
-
-            let voxel = if dx * dx + dy * dy + dz * dz < 64.0 {
-                Block(1)
-            } else {
-                Block(0)
-            };
-
-            chunk.set_by_index(i, voxel);
-        }
-        commands.spawn((Transform::from_xyz(0., 0., 0.), chunk));
+        commands.spawn((Transform::from_xyz(0., 0., 0.)));
         commands.spawn((
             Transform::from_xyz(10.0, 10.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
             DirectionalLight {
@@ -176,24 +161,5 @@ impl ChunkRenderPlugin {
                 ..default()
             },
         ));
-    }
-
-    pub fn render_chunks(
-        mut commands: Commands,
-        mut meshes: ResMut<Assets<Mesh>>,
-        mut materials: ResMut<Assets<StandardMaterial>>,
-        query: Query<(Entity, &Chunk)>,
-    ) {
-        for (entity, chunk) in query {
-            let mut chunk_entity = commands.entity(entity);
-            let chunk_mesh = meshes.add(Self::generate_chunk_mesh(chunk));
-            let chunk_material = materials.add(StandardMaterial {
-                base_color: Color::Hsva(Hsva::hsv(97.8, 0.6, 0.97)),
-                perceptual_roughness: 0.9,
-                metallic: 0.0,
-                ..default()
-            });
-            chunk_entity.insert((Mesh3d(chunk_mesh), MeshMaterial3d(chunk_material)));
-        }
     }
 }

@@ -11,7 +11,7 @@ pub const PADDED_CHUNK_SIZE2_USIZE: usize = 324;
 pub const PADDED_CHUNK_SIZE3: i32 = 5832;
 pub const PADDED_CHUNK_SIZE3_USIZE: usize = 5832;
 
-#[derive(Component, Default, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Default, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Chunk {
     blocks: Vec<Block>,
 }
@@ -20,6 +20,23 @@ impl Chunk {
     pub fn new() -> Self {
         Self {
             blocks: vec![Block(0); (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE) as usize],
+        }
+    }
+
+    pub fn generate(&mut self) {
+        for i in 0..CHUNK_SIZE3 {
+            let coords = Self::coords_by_index(i);
+            let dx = coords.x as f32 - 8.0;
+            let dy = coords.y as f32 - 8.0;
+            let dz = coords.z as f32 - 8.0;
+
+            let voxel = if dx*dx + dy*dy + dz*dz < 64.0 {
+                Block(1)
+            } else {
+                Block(0)
+            };
+
+            self.set_by_index(i, voxel);
         }
     }
 

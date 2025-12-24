@@ -3,20 +3,30 @@ mod chunk;
 mod chunk_render_plugin;
 mod greedy_chunk_render_plugin;
 mod quad;
+mod world;
+mod chunk_mesh;
+mod chunk_loader;
+mod debug_world;
 
-use crate::chunk_render_plugin::ChunkRenderPlugin;
 use crate::greedy_chunk_render_plugin::GreedyChunkRenderPlugin;
 use bevy::DefaultPlugins;
-use bevy::app::{App, PluginGroup};
+use bevy::app::{App, PluginGroup, PostStartup, Startup};
 use bevy::color::palettes::basic::WHITE;
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
+use bevy::light::DirectionalLight;
+use bevy::math::Vec3;
 use bevy::pbr::wireframe::{WireframeConfig, WireframePlugin};
-use bevy::prelude::{Window, default};
+use bevy::prelude::{Window, default, With, Single, Commands, Transform};
 use bevy::render::RenderPlugin;
 use bevy::render::render_resource::WgpuFeatures;
 use bevy::render::settings::{RenderCreation, WgpuSettings};
-use bevy::window::{PresentMode, WindowPlugin};
+use bevy::window::{CursorGrabMode, CursorOptions, PresentMode, PrimaryWindow, WindowPlugin};
 use bevy_flycam::PlayerPlugin;
+use bevy_inspector_egui::bevy_egui::EguiPlugin;
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use crate::chunk_loader::{ChunkLoader, ChunkLoaderPlugin};
+use crate::debug_world::DebugWorldPlugin;
+use crate::world::WorldPlugin;
 
 fn main() {
     App::new()
@@ -41,6 +51,11 @@ fn main() {
             WireframePlugin::default(),
             FrameTimeDiagnosticsPlugin::default(),
             LogDiagnosticsPlugin::default(),
+
+            EguiPlugin::default(),
+            WorldPlugin,
+            ChunkLoaderPlugin,
+            DebugWorldPlugin
         ))
         .insert_resource(WireframeConfig {
             global: true,
@@ -49,5 +64,17 @@ fn main() {
         //.add_plugins(ChunkRenderPlugin::default())
         .add_plugins(GreedyChunkRenderPlugin::default())
         .add_plugins(PlayerPlugin)
+        .add_systems(PostStartup, setup)
         .run();
+}
+
+pub fn setup(mut commands: Commands, mut primary_cursor_options: Single<&mut CursorOptions, With<PrimaryWindow>>) {
+    primary_cursor_options.grab_mode = CursorGrabMode::None;
+    primary_cursor_options.visible = true;
+
+    commands.spawn((Transform::from_xyz(10.0, 10.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y), ChunkLoader::new(32), DirectionalLight {
+        illuminance: 2_500.0,
+        shadows_enabled: false,
+        ..default()
+    }));
 }
