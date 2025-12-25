@@ -22,9 +22,9 @@ pub struct WorldStats {
     #[inspector(min = 0, max = 100)]
     pub sample_size: usize,
 
-    pub loaded_chunk_positions: Vec<(i32, i32, i32)>,
-    pub data_load_queue: Vec<(i32, i32, i32)>,
-    pub mesh_load_queue: Vec<(i32, i32, i32)>,
+    pub loaded_chunk_positions: Vec<(i32, i32)>,
+    pub data_load_queue: Vec<(i32, i32)>,
+    pub mesh_load_queue: Vec<(i32, i32)>,
 }
 
 pub struct DebugWorldPlugin;
@@ -62,19 +62,19 @@ impl DebugWorldPlugin {
         stats.loaded_chunk_positions = world.loaded_chunks
             .keys()
             .take(limit)
-            .map(|&pos| (pos.x, pos.y, pos.z))
+            .map(|&pos| (pos.0.x, pos.0.y))
             .collect();
 
         stats.data_load_queue = world.chunks_data_to_unload
             .iter()
             .take(limit)
-            .map(|&pos| (pos.x, pos.y, pos.z))
+            .map(|&pos| (pos.0.x, pos.0.y))
             .collect();
 
         stats.mesh_load_queue = world.chunks_mesh_to_load
             .iter()
             .take(limit)
-            .map(|&pos| (pos.x, pos.y, pos.z))
+            .map(|&pos| (pos.0.x, pos.0.y))
             .collect();
     }
 }

@@ -1,8 +1,9 @@
 ﻿use std::collections::HashSet;
 use bevy::app::{App, Plugin, PreUpdate};
-use bevy::math::{IVec3, Vec3};
+use bevy::log::info;
+use bevy::math::{IVec2, IVec3, Vec3, Vec3Swizzles};
 use bevy::prelude::{Component, GlobalTransform, Query, ResMut};
-use crate::chunk::CHUNK_SIZE;
+use crate::chunk::{ChunkPos, CHUNK_SIZE};
 use crate::world::World;
 
 #[derive(Component, Default)]
@@ -31,7 +32,9 @@ impl Plugin for ChunkLoaderPlugin {
 impl ChunkLoaderPlugin {
     pub fn update_chunks(mut loaders: Query<(&mut ChunkLoader, &GlobalTransform)>, mut world: ResMut<World>) {
         for (mut loader, transform) in loaders {
-            let current_chunk = (transform.translation() - Vec3::splat((CHUNK_SIZE / 2) as f32)).as_ivec3();
+            let current_chunk = (transform.translation() / Vec3::splat(CHUNK_SIZE as f32)).as_ivec3();
+            //info!("{:?}", current_chunk);
+            //info!("{:?}", transform.translation());
             let previous_chunk = loader.previous_chunk;
             let has_moved = current_chunk != previous_chunk;
             loader.previous_chunk = current_chunk;
@@ -39,8 +42,8 @@ impl ChunkLoaderPlugin {
                 continue;
             }
 
-            let chunks_to_load: HashSet<IVec3> = get_chunks_in_radius(current_chunk, loader.distance).iter().copied().collect();
-            let chunks_to_unload: HashSet<IVec3> = get_chunks_in_radius(previous_chunk, loader.distance).iter().copied().collect();
+            let chunks_to_load: HashSet<ChunkPos> = get_chunks_in_radius(ChunkPos(current_chunk.xz()), loader.distance).iter().copied().collect();
+            let chunks_to_unload: HashSet<ChunkPos> = get_chunks_in_radius(ChunkPos(previous_chunk.xz()), loader.distance).iter().copied().collect();
 
             for &pos in chunks_to_load.difference(&chunks_to_unload) {
                 world.load_chunk(pos);
@@ -53,7 +56,7 @@ impl ChunkLoaderPlugin {
     }
 }
 
-fn get_chunks_in_radius(center: IVec3, radius: i32) -> Vec<IVec3> {
+fn get_chunks_in_radius(center: ChunkPos, radius: i32) -> Vec<ChunkPos> {
     let mut chunks = vec![];
     let radius_sq = radius * radius;
 
@@ -61,11 +64,11 @@ fn get_chunks_in_radius(center: IVec3, radius: i32) -> Vec<IVec3> {
         for z in -radius..=radius {
             let dist_sq = x * x + z * z;
             if dist_sq <= radius_sq {
-                chunks.push(center + IVec3::new(x, 0, z));
+                chunks.push(ChunkPos(center.0 + IVec2::new(x, z)));
             }
         }
     }
 
-    chunks.sort_by_key(|pos| pos.distance_squared(center));
+    chunks.sort_by_key(|pos| pos.0.distance_squared(center.0));
     chunks
 }

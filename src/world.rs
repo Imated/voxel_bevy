@@ -1,36 +1,34 @@
-﻿use crate::chunk::{Chunk, CHUNK_SIZE};
+﻿use crate::chunk::{Chunk, ChunkPos, CHUNK_SIZE};
 use crate::chunk_mesh::ChunkMesh;
+use crate::greedy_chunk_render_plugin::generate_chunk_mesh;
 use bevy::app::{App, Plugin, Update};
-use bevy::math::IVec3;
-use bevy::prelude::{Commands, Component, Entity, GlobalTransform, Query, ResMut, Resource, Transform, With};
+use bevy::asset::{Assets, RenderAssetUsages};
+use bevy::color::{Color, Srgba};
+use bevy::mesh::{Indices, Mesh, Mesh3d, PrimitiveTopology};
+use bevy::pbr::{MeshMaterial3d, StandardMaterial};
+use bevy::prelude::{Commands, Entity, ResMut, Resource, Transform};
 use bevy::tasks::Task;
 use std::collections::HashMap;
 use std::sync::Arc;
-use bevy::asset::{Assets, RenderAssetUsages};
-use bevy::color::{Color, Srgba};
-use bevy::log::tracing::span::Attributes;
-use bevy::mesh::{Indices, Mesh, Mesh3d, MeshVertexAttribute, PrimitiveTopology};
-use bevy::pbr::{MeshMaterial3d, StandardMaterial};
-use crate::greedy_chunk_render_plugin::generate_chunk_mesh;
 
 #[derive(Resource, Debug, Default)]
 pub struct World {
-    pub(crate) loaded_chunks: HashMap<IVec3, Arc<Chunk>>,
+    pub(crate) loaded_chunks: HashMap<ChunkPos, Arc<Chunk>>,
 
-    pub(crate) chunks_data_to_load: Vec<IVec3>,
-    pub(crate) chunks_data_to_unload: Vec<IVec3>,
+    pub(crate) chunks_data_to_load: Vec<ChunkPos>,
+    pub(crate) chunks_data_to_unload: Vec<ChunkPos>,
 
-    pub(crate) chunks_mesh_to_load: Vec<IVec3>,
-    pub(crate) chunks_mesh_to_unload: Vec<IVec3>,
+    pub(crate) chunks_mesh_to_load: Vec<ChunkPos>,
+    pub(crate) chunks_mesh_to_unload: Vec<ChunkPos>,
 
-    pub(crate) data_tasks: HashMap<IVec3, Task<Chunk>>,
-    pub(crate) mesh_tasks: HashMap<IVec3, Task<ChunkMesh>>,
+    pub(crate) data_tasks: HashMap<ChunkPos, Task<Chunk>>,
+    pub(crate) mesh_tasks: HashMap<ChunkPos, Task<ChunkMesh>>,
 
-    chunk_entities: HashMap<IVec3, Entity>,
+    chunk_entities: HashMap<ChunkPos, Entity>,
 }
 
 impl World {
-    pub fn load_chunk(&mut self, position: IVec3) {
+    pub fn load_chunk(&mut self, position: ChunkPos) {
         if self.loaded_chunks.contains_key(&position) || self.chunks_data_to_load.contains(&position) {
             return;
         }
@@ -38,7 +36,7 @@ impl World {
         self.chunks_data_to_load.push(position);
     }
 
-    pub fn unload_chunk(&mut self, position: IVec3) {
+    pub fn unload_chunk(&mut self, position: ChunkPos) {
         if !self.loaded_chunks.contains_key(&position) && !self.chunks_data_to_load.contains(&position) {
             return;
         }
@@ -54,9 +52,6 @@ impl Plugin for WorldPlugin {
     }
 }
 
-#[derive(Component)]
-struct ChunkPos(IVec3);
-
 impl WorldPlugin {
     pub fn update_chunks(mut commands: Commands, mut world: ResMut<World>, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>) {
         let chunks_to_load: Vec<_> = world.chunks_data_to_load.drain(..).collect();
@@ -70,7 +65,7 @@ impl WorldPlugin {
             chunk.generate();
             let chunk_data = Arc::new(chunk);
             let chunk_mesh = generate_chunk_mesh(Arc::clone(&chunk_data));
-            println!("Chunk {} mesh: {} vertices, {} indices",
+            println!("Chunk {:?} mesh: {} vertices, {} indices",
                      chunk_pos, chunk_mesh.vertices.len(), chunk_mesh.indices.len());
 
             let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::RENDER_WORLD);
@@ -84,11 +79,11 @@ impl WorldPlugin {
                     Color::Srgba(Srgba::rgb(0.3, 0.5, 0.3))
                 ))),
                 Transform::from_xyz(
-                    chunk_pos.x as f32 * CHUNK_SIZE as f32,
-                    chunk_pos.y as f32 * CHUNK_SIZE as f32,
-                    chunk_pos.z as f32 * CHUNK_SIZE as f32
+                    chunk_pos.0.x as f32 * CHUNK_SIZE as f32,
+                    0.0,
+                    chunk_pos.0.y as f32 * CHUNK_SIZE as f32
                 ),
-                ChunkPos(chunk_pos),
+                chunk_pos,
             )).id();
 
             world.loaded_chunks.insert(chunk_pos, Arc::clone(&chunk_data));

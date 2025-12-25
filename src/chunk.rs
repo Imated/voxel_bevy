@@ -1,3 +1,4 @@
+use bevy::math::IVec2;
 use crate::block::Block;
 use bevy::prelude::{Component, IVec3};
 
@@ -10,6 +11,9 @@ pub const PADDED_CHUNK_SIZE2: i32 = 324;
 pub const PADDED_CHUNK_SIZE2_USIZE: usize = 324;
 pub const PADDED_CHUNK_SIZE3: i32 = 5832;
 pub const PADDED_CHUNK_SIZE3_USIZE: usize = 5832;
+
+#[derive(Component, Copy, Clone, Eq, PartialEq, Debug, Default, Hash)]
+pub struct ChunkPos(pub IVec2);
 
 #[derive(Default, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Chunk {
