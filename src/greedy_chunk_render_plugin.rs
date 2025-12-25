@@ -1,16 +1,12 @@
 use crate::block::Block;
-use crate::chunk::{Chunk, CHUNK_SIZE, CHUNK_SIZE3, PADDED_CHUNK_SIZE, PADDED_CHUNK_SIZE2, PADDED_CHUNK_SIZE2_USIZE, PADDED_CHUNK_SIZE3, PADDED_CHUNK_SIZE3_USIZE, PADDED_CHUNK_SIZE_USIZE};
+use crate::chunk::{ChunkSection, CHUNK_SIZE, PADDED_CHUNK_SIZE2_USIZE, PADDED_CHUNK_SIZE3_USIZE, PADDED_CHUNK_SIZE_USIZE};
+use crate::chunk_mesh::ChunkSectionMesh;
 use crate::quad::{Direction, GreedyQuad};
 use bevy::app::App;
-use bevy::asset::RenderAssetUsages;
-use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::prelude::*;
 use bevy::reflect::Array;
 use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Instant;
-use crate::chunk_loader::ChunkLoader;
-use crate::chunk_mesh::ChunkMesh;
+use std::sync::{Arc, RwLock};
 
 #[derive(Default)]
 pub struct GreedyChunkRenderPlugin;
@@ -61,7 +57,7 @@ impl Plugin for GreedyChunkRenderPlugin {
         greedy_quads
     }
 
-    pub fn generate_chunk_mesh(chunk: Arc<Chunk>) -> ChunkMesh {
+    pub fn generate_section_mesh(section: &ChunkSection) -> ChunkSectionMesh {
         let mut vertices = vec![];
         let mut normals = vec![];
 
@@ -73,7 +69,7 @@ impl Plugin for GreedyChunkRenderPlugin {
         for y in 0..PADDED_CHUNK_SIZE_USIZE {
             for z in 0..PADDED_CHUNK_SIZE_USIZE {
                 for x in 0..PADDED_CHUNK_SIZE_USIZE {
-                    let block = chunk.get_by_xyz(x as i32 - 1, y as i32 - 1, z as i32 - 1);
+                    let block = section.get_by_xyz(x as i32 - 1, y as i32 - 1, z as i32 - 1);
                     if block.is_solid() {
                         solid_voxels_per_axis[x + z * PADDED_CHUNK_SIZE_USIZE] |= 1u64 << y;
                         solid_voxels_per_axis[z + y * PADDED_CHUNK_SIZE_USIZE + PADDED_CHUNK_SIZE2_USIZE] |= 1u64 << x;
@@ -121,7 +117,7 @@ impl Plugin for GreedyChunkRenderPlugin {
                             _ => ivec3(x as i32, z as i32, y as i32), // forward | back
                         };
 
-                        let block = chunk.get(voxel_pos);
+                        let block = section.get_by_xyz(voxel_pos.x, voxel_pos.y, voxel_pos.z);
                         //let key = (axis, block, y);
                         let data = data.entry((axis as u8, block, y as u16)).or_default();
                         data[x] |= 1u16 << z as u16;
@@ -147,7 +143,7 @@ impl Plugin for GreedyChunkRenderPlugin {
         }
 
         let indices = generate_indices(vertices.len());
-        ChunkMesh::new(vertices, normals, indices)
+        ChunkSectionMesh::new(vertices, normals, indices)
     }
 
     //https://github.com/TanTanDev/binary_greedy_mesher_demo/blob/main/src/utils.rs#L95

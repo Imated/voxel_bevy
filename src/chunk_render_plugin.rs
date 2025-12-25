@@ -1,5 +1,5 @@
 use crate::block::Block;
-use crate::chunk::{CHUNK_SIZE3, Chunk};
+use crate::chunk::{CHUNK_SIZE3, Chunk, CHUNK_SIZE};
 use bevy::app::App;
 use bevy::asset::RenderAssetUsages;
 use bevy::mesh::{Indices, PrimitiveTopology};
@@ -107,32 +107,35 @@ impl ChunkRenderPlugin {
         let mut vertices = Vec::new();
         let mut normals = Vec::new();
         let mut indices = Vec::new();
-        for i in 0..CHUNK_SIZE3 {
-            let coords = Chunk::coords_by_index(i);
-            let block = chunk.get_by_index(i);
-            if block == Block(0) {
-                // 0 = air
-                continue;
-            }
+        for x in 0..CHUNK_SIZE {
+            for y in 0..CHUNK_SIZE {
+                for z in 0..CHUNK_SIZE {
+                    let block = chunk.get_by_xyz(x, y, z);
+                    if block == Block(0) {
+                        // 0 = air
+                        continue;
+                    }
 
-            let neighbors = [
-                chunk.get_by_xyz(coords.x, coords.y + 1, coords.z),
-                chunk.get_by_xyz(coords.x, coords.y - 1, coords.z),
-                chunk.get_by_xyz(coords.x - 1, coords.y, coords.z),
-                chunk.get_by_xyz(coords.x + 1, coords.y, coords.z),
-                chunk.get_by_xyz(coords.x, coords.y, coords.z + 1),
-                chunk.get_by_xyz(coords.x, coords.y, coords.z - 1),
-            ];
+                    let neighbors = [
+                        chunk.get_by_xyz(x, y + 1, z),
+                        chunk.get_by_xyz(x, y - 1, z),
+                        chunk.get_by_xyz(x - 1, y, z),
+                        chunk.get_by_xyz(x + 1, y, z),
+                        chunk.get_by_xyz(x, y, z + 1),
+                        chunk.get_by_xyz(x, y, z - 1),
+                    ];
 
-            for face in 0..6 {
-                if neighbors[face] == Block(0) {
-                    Self::add_face(
-                        coords.as_vec3(),
-                        face as i32,
-                        &mut vertices,
-                        &mut normals,
-                        &mut indices,
-                    );
+                    for face in 0..6 {
+                        if neighbors[face] == Block(0) {
+                            Self::add_face(
+                                vec3(x as f32, y as f32, z as f32),
+                                face as i32,
+                                &mut vertices,
+                                &mut normals,
+                                &mut indices,
+                            );
+                        }
+                    }
                 }
             }
         }

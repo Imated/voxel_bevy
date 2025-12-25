@@ -1,6 +1,6 @@
 ﻿use crate::chunk::{Chunk, ChunkPos, CHUNK_SIZE};
-use crate::chunk_mesh::ChunkMesh;
-use crate::greedy_chunk_render_plugin::generate_chunk_mesh;
+use crate::chunk_mesh::ChunkSectionMesh;
+use crate::greedy_chunk_render_plugin::generate_section_mesh;
 use bevy::app::{App, Plugin, Update};
 use bevy::asset::{Assets, RenderAssetUsages};
 use bevy::color::{Color, Srgba};
@@ -22,9 +22,9 @@ pub struct World {
     pub(crate) chunks_mesh_to_unload: Vec<ChunkPos>,
 
     pub(crate) data_tasks: HashMap<ChunkPos, Task<Chunk>>,
-    pub(crate) mesh_tasks: HashMap<ChunkPos, Task<ChunkMesh>>,
+    pub(crate) mesh_tasks: HashMap<ChunkPos, Task<ChunkSectionMesh>>,
 
-    chunk_entities: HashMap<ChunkPos, Entity>,
+    chunk_entities: HashMap<ChunkPos, Vec<Entity>>,
 }
 
 impl World {
@@ -63,39 +63,45 @@ impl WorldPlugin {
 
             let mut chunk = Chunk::new();
             chunk.generate();
+            let mut section_entities = vec![];
+            for (section_y, section) in chunk.sections.iter().enumerate() {
+                let section_data = section.read().unwrap();
+                let section_mesh = generate_section_mesh(&section_data);
+
+                let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::RENDER_WORLD);
+                mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, section_mesh.vertices);
+                mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, section_mesh.normals);
+                mesh.insert_indices(Indices::U32(section_mesh.indices));
+
+                let entity = commands.spawn((
+                    Mesh3d(meshes.add(mesh)),
+                    MeshMaterial3d(materials.add(StandardMaterial::from_color(
+                        Color::Srgba(Srgba::rgb(0.3, 0.5, 0.3))
+                    ))),
+                    Transform::from_xyz(
+                        chunk_pos.0.x as f32 * CHUNK_SIZE as f32,
+                        CHUNK_SIZE as f32 * section_y as f32,
+                        chunk_pos.0.y as f32 * CHUNK_SIZE as f32
+                    ),
+                    chunk_pos,
+                )).id();
+
+                section_entities.push(entity);
+            }
+
             let chunk_data = Arc::new(chunk);
-            let chunk_mesh = generate_chunk_mesh(Arc::clone(&chunk_data));
-            println!("Chunk {:?} mesh: {} vertices, {} indices",
-                     chunk_pos, chunk_mesh.vertices.len(), chunk_mesh.indices.len());
-
-            let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::RENDER_WORLD);
-            mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, chunk_mesh.vertices);
-            mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, chunk_mesh.normals);
-            mesh.insert_indices(Indices::U32(chunk_mesh.indices));
-
-            let entity = commands.spawn((
-                Mesh3d(meshes.add(mesh)),
-                MeshMaterial3d(materials.add(StandardMaterial::from_color(
-                    Color::Srgba(Srgba::rgb(0.3, 0.5, 0.3))
-                ))),
-                Transform::from_xyz(
-                    chunk_pos.0.x as f32 * CHUNK_SIZE as f32,
-                    0.0,
-                    chunk_pos.0.y as f32 * CHUNK_SIZE as f32
-                ),
-                chunk_pos,
-            )).id();
-
-            world.loaded_chunks.insert(chunk_pos, Arc::clone(&chunk_data));
-            world.chunk_entities.insert(chunk_pos, entity);
+            world.chunk_entities.insert(chunk_pos, section_entities);
+            world.loaded_chunks.insert(chunk_pos, chunk_data.clone());
         }
 
         let chunks_to_unload: Vec<_> = world.chunks_data_to_unload.drain(..).collect();
 
         // Unload chunks
         for chunk_pos in chunks_to_unload {
-            if let Some(entity) = world.chunk_entities.remove(&chunk_pos) {
-                commands.entity(entity).despawn();
+            if let Some(entities) = world.chunk_entities.remove(&chunk_pos) {
+                for entity in entities {
+                    commands.entity(entity).despawn();
+                }
             }
 
             world.loaded_chunks.remove(&chunk_pos);

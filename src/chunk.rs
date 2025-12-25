@@ -1,3 +1,4 @@
+use std::sync::{Arc, RwLock};
 use bevy::math::IVec2;
 use crate::block::Block;
 use bevy::prelude::{Component, IVec3};
@@ -16,31 +17,69 @@ pub const PADDED_CHUNK_SIZE3_USIZE: usize = 5832;
 pub struct ChunkPos(pub IVec2);
 
 #[derive(Default, Debug, Ord, PartialOrd, Eq, PartialEq)]
-pub struct Chunk {
+pub struct ChunkSection {
     blocks: Vec<Block>,
 }
 
-impl Chunk {
+impl ChunkSection {
     pub fn new() -> Self {
         Self {
             blocks: vec![Block(0); (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE) as usize],
         }
     }
 
+    pub fn get_by_xyz(&self, x: i32, y: i32, z: i32) -> Block {
+        if x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE {
+            return Block(0);
+        }
+
+        self.blocks[(x + (y * CHUNK_SIZE) + (z * CHUNK_SIZE2)) as usize]
+    }
+
+    pub fn set_by_xyz(&mut self, x: i32, y: i32, z: i32, id: Block) {
+        if x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE {
+            return;
+        }
+
+        self.blocks[(x + (y * CHUNK_SIZE) + (z * CHUNK_SIZE2)) as usize] = id;
+    }
+}
+
+#[derive(Default, Debug)]
+pub struct Chunk {
+    pub sections: Vec<Arc<RwLock<ChunkSection>>>
+}
+
+impl Chunk {
+    pub fn new() -> Self {
+        Self {
+            sections: vec![],
+        }
+    }
+
     pub fn generate(&mut self) {
-        for i in 0..CHUNK_SIZE3 {
-            let coords = Self::coords_by_index(i);
-            let dx = coords.x as f32 - 8.0;
-            let dy = coords.y as f32 - 8.0;
-            let dz = coords.z as f32 - 8.0;
+        for _ in 0..2 {
+            let mut section = ChunkSection::new();
 
-            let voxel = if dx*dx + dy*dy + dz*dz < 64.0 {
-                Block(1)
-            } else {
-                Block(0)
-            };
+            for x in 0..CHUNK_SIZE {
+                for y in 0..CHUNK_SIZE {
+                    for z in 0..CHUNK_SIZE {
+                        let dx = x as f32 - 8.0;
+                        let dy = y as f32 - 8.0;
+                        let dz = z as f32 - 8.0;
 
-            self.set_by_index(i, voxel);
+                        let voxel = if dx * dx + dy * dy + dz * dz < 64.0 {
+                            Block(1)
+                        } else {
+                            Block(0)
+                        };
+
+                        section.set_by_xyz(x, y, z, voxel);
+                    }
+                }
+            }
+
+            self.sections.push(Arc::new(RwLock::new(section)));
         }
     }
 
@@ -56,71 +95,37 @@ impl Chunk {
         IVec3 { x, y, z }
     }
 
-    pub fn get_by_index(&self, index: i32) -> Block {
-        if index >= self.blocks.len() as i32 {
-            return Block(0);
-        }
-        self.blocks[index as usize]
-    }
-
-    pub fn set_by_index(&mut self, index: i32, id: Block) {
-        if index >= self.blocks.len() as i32 {
-            return;
-        }
-        self.blocks[index as usize] = id;
-    }
-
     pub fn get_by_xyz(&self, x: i32, y: i32, z: i32) -> Block {
-        if x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE {
+        let section = y / CHUNK_SIZE;
+        if section >= self.sections.len() as i32 {
             return Block(0);
         }
-        self.blocks[(x + (y * CHUNK_SIZE) + (z * CHUNK_SIZE2)) as usize]
+        let y_in_section = y % CHUNK_SIZE;
+        let guard = self.sections[section as usize].read().unwrap();
+        guard.get_by_xyz(x, y_in_section, z)
     }
 
-    pub fn set_by_xyz(&mut self, x: i32, y: i32, z: i32, id: Block) {
-        if x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE {
+    pub fn set_by_xyz(&self, x: i32, y: i32, z: i32, id: Block) {
+        let section = y / CHUNK_SIZE;
+        if section >= self.sections.len() as i32 {
             return;
         }
-        self.blocks[(x + (y * CHUNK_SIZE) + (z * CHUNK_SIZE2)) as usize] = id;
+        let y_in_section = y % CHUNK_SIZE;
+        let mut guard = self.sections[section as usize].write().unwrap();
+        guard.set_by_xyz(x, y_in_section, z, id);
     }
 
     pub fn get(&self, coords: IVec3) -> Block {
-        if coords.x < 0
-            || coords.x >= CHUNK_SIZE
-            || coords.y < 0
-            || coords.y >= CHUNK_SIZE
-            || coords.z < 0
-            || coords.z >= CHUNK_SIZE
-        {
-            return Block(0);
-        }
-        self.blocks[(coords.x + (coords.y * CHUNK_SIZE) + (coords.z * CHUNK_SIZE2)) as usize]
+        let x = coords.x;
+        let y = coords.y;
+        let z = coords.z;
+        self.get_by_xyz(x, y, z)
     }
 
-    pub unsafe fn get_unchecked(&self, coords: IVec3) -> Block {
-        self.blocks[(coords.x + (coords.y * CHUNK_SIZE) + (coords.z * CHUNK_SIZE2)) as usize]
-    }
-
-    pub unsafe fn get_by_xyz_unchecked(&self, x: i32, y: i32, z: i32) -> Block {
-        self.blocks[(x + (y * CHUNK_SIZE) + (z * CHUNK_SIZE2)) as usize]
-    }
-
-    pub fn get_2(&self, coords: IVec3, offset: IVec3) -> (Block, Block) {
-        let first = self.get(coords);
-        let second = self.get(coords + offset);
-        (first, second)
-    }
-
-    pub fn set(&mut self, coords: IVec3, id: Block) {
-        if coords.x < 0
-            || coords.x >= CHUNK_SIZE
-            || coords.y < 0
-            || coords.y >= CHUNK_SIZE
-            || coords.z < 0
-            || coords.z >= CHUNK_SIZE
-        {
-            return;
-        }
-        self.blocks[(coords.x + (coords.y * CHUNK_SIZE) + (coords.z * CHUNK_SIZE2)) as usize] = id;
+    pub fn set(&self, coords: IVec3, id: Block) {
+        let x = coords.x;
+        let y = coords.y;
+        let z = coords.z;
+        self.set_by_xyz(x, y, z, id);
     }
 }
