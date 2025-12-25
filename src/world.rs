@@ -1,18 +1,15 @@
-﻿use bevy::prelude::ReflectResource;
-use std::collections::HashMap;
-use std::sync::Arc;
+﻿use crate::chunk::Chunk;
+use crate::chunk_mesh::ChunkMesh;
 use bevy::app::{App, Plugin};
 use bevy::math::IVec3;
 use bevy::prelude::{Entity, Resource};
 use bevy::tasks::Task;
-use bevy_inspector_egui::__macro_exports::bevy_reflect::Reflect;
-use crate::chunk::Chunk;
-use crate::chunk_mesh::ChunkMesh;
-use bevy_inspector_egui::quick::ResourceInspectorPlugin;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 #[derive(Resource, Debug, Default)]
 pub struct World {
-    pub(crate) chunks: HashMap<IVec3, Arc<Chunk>>,
+    pub(crate) loaded_chunks: HashMap<IVec3, Arc<Chunk>>,
 
     pub(crate) chunks_data_to_load: Vec<IVec3>,
     pub(crate) chunks_data_to_unload: Vec<IVec3>,
@@ -27,16 +24,19 @@ pub struct World {
 }
 
 impl World {
-    pub fn load_chunk(&mut self, position: IVec3, dummy: bool) {
-        self.chunks_data_to_load.push(position);
-        if !dummy {
-            self.chunks_mesh_to_load.push(position);
+    pub fn load_chunk(&mut self, position: IVec3) {
+        if self.loaded_chunks.contains_key(&position) || self.chunks_data_to_load.contains(&position) {
+            return;
         }
+
+        self.chunks_data_to_load.push(position);
     }
 
     pub fn unload_chunk(&mut self, position: IVec3) {
+        if !self.loaded_chunks.contains_key(&position) && !self.chunks_data_to_load.contains(&position) {
+            return;
+        }
         self.chunks_data_to_unload.push(position);
-        self.chunks_mesh_to_unload.push(position);
     }
 }
 

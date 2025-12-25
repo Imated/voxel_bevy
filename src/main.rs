@@ -11,6 +11,7 @@ mod debug_world;
 use crate::greedy_chunk_render_plugin::GreedyChunkRenderPlugin;
 use bevy::DefaultPlugins;
 use bevy::app::{App, PluginGroup, PostStartup, Startup};
+use bevy::camera::Camera3d;
 use bevy::color::palettes::basic::WHITE;
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::light::DirectionalLight;
@@ -21,7 +22,7 @@ use bevy::render::RenderPlugin;
 use bevy::render::render_resource::WgpuFeatures;
 use bevy::render::settings::{RenderCreation, WgpuSettings};
 use bevy::window::{CursorGrabMode, CursorOptions, PresentMode, PrimaryWindow, WindowPlugin};
-use bevy_flycam::PlayerPlugin;
+use bevy_flycam::{FlyCam, NoCameraPlayerPlugin, PlayerPlugin};
 use bevy_inspector_egui::bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use crate::chunk_loader::{ChunkLoader, ChunkLoaderPlugin};
@@ -63,7 +64,7 @@ fn main() {
         })
         //.add_plugins(ChunkRenderPlugin::default())
         .add_plugins(GreedyChunkRenderPlugin::default())
-        .add_plugins(PlayerPlugin)
+        .add_plugins(NoCameraPlayerPlugin)
         .add_systems(PostStartup, setup)
         .run();
 }
@@ -72,7 +73,9 @@ pub fn setup(mut commands: Commands, mut primary_cursor_options: Single<&mut Cur
     primary_cursor_options.grab_mode = CursorGrabMode::None;
     primary_cursor_options.visible = true;
 
-    commands.spawn((Transform::from_xyz(10.0, 10.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y), ChunkLoader::new(32), DirectionalLight {
+    commands.spawn((Transform::default(), Camera3d::default(), ChunkLoader::new(6), FlyCam));
+
+    commands.spawn((Transform::from_xyz(10.0, 10.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y), DirectionalLight {
         illuminance: 2_500.0,
         shadows_enabled: false,
         ..default()

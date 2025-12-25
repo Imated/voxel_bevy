@@ -45,7 +45,7 @@ impl DebugWorldPlugin {
         world: Res<World>,
         mut stats: ResMut<WorldStats>,
     ) {
-        stats.loaded_chunks = world.chunks.len();
+        stats.loaded_chunks = world.loaded_chunks.len();
         stats.data_to_load = world.chunks_data_to_load.len();
         stats.data_to_unload = world.chunks_data_to_unload.len();
         stats.mesh_to_load = world.chunks_mesh_to_load.len();
@@ -59,13 +59,13 @@ impl DebugWorldPlugin {
 
         let limit = stats.sample_size;
 
-        stats.loaded_chunk_positions = world.chunks
+        stats.loaded_chunk_positions = world.loaded_chunks
             .keys()
             .take(limit)
             .map(|&pos| (pos.x, pos.y, pos.z))
             .collect();
 
-        stats.data_load_queue = world.chunks_data_to_load
+        stats.data_load_queue = world.chunks_data_to_unload
             .iter()
             .take(limit)
             .map(|&pos| (pos.x, pos.y, pos.z))

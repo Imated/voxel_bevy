@@ -9,17 +9,13 @@ use crate::world::World;
 pub struct ChunkLoader {
     pub distance: i32,
     previous_chunk: IVec3,
-    data_sampling_offsets: Vec<IVec3>,
 }
 
 impl ChunkLoader {
     pub fn new(distance: i32) -> Self {
-        let data_sampling_offsets = make_offset_vec(distance);
-        
         Self {
             distance,
             previous_chunk: IVec3::splat(9999),
-            data_sampling_offsets,
         }
     }
 }
@@ -43,45 +39,33 @@ impl ChunkLoaderPlugin {
                 continue;
             }
 
-            let load_area = loader
-                .data_sampling_offsets
-                .iter()
-                .map(|&offset| current_chunk + offset)
-                .collect::<HashSet<IVec3>>();
+            let chunks_to_load: HashSet<IVec3> = get_chunks_in_radius(current_chunk, loader.distance).iter().copied().collect();
+            let chunks_to_unload: HashSet<IVec3> = get_chunks_in_radius(previous_chunk, loader.distance).iter().copied().collect();
 
-            let unload_area = loader
-                .data_sampling_offsets
-                .iter()
-                .map(|&offset| previous_chunk + offset)
-                .collect::<HashSet<IVec3>>();
-
-            for &pos in load_area.difference(&unload_area) {
-                world.load_chunk(pos, false);
+            for &pos in chunks_to_load.difference(&chunks_to_unload) {
+                world.load_chunk(pos);
             }
 
-            for &pos in unload_area.difference(&load_area) {
+            for &pos in chunks_to_unload.difference(&chunks_to_load) {
                 world.unload_chunk(pos);
             }
         }
     }
 }
 
-//https://github.com/TanTanDev/binary_greedy_mesher_demo/blob/main/src/scanner.rs#L182
-fn make_offset_vec(half: i32) -> Vec<IVec3> {
-    let k = (half * 2) + 1;
-    let mut sampling_offsets = vec![];
-    for i in 0..k * k * k {
-        let x = i % k;
-        let y = (i / k) % k;
-        let z = i / (k * k);
-        let mut pos =IVec3::new(x, y, z);
-        pos -= IVec3::splat((k as f32 * 0.5) as i32);
+fn get_chunks_in_radius(center: IVec3, radius: i32) -> Vec<IVec3> {
+    let mut chunks = vec![];
+    let radius_sq = radius * radius;
 
-        sampling_offsets.push(pos);
+    for x in -radius..=radius {
+        for z in -radius..=radius {
+            let dist_sq = x * x + z * z;
+            if dist_sq <= radius_sq {
+                chunks.push(center + IVec3::new(x, 0, z));
+            }
+        }
     }
-    sampling_offsets.sort_by(|a, b| {
-        a.distance_squared(IVec3::ZERO)
-            .cmp(&b.distance_squared(IVec3::ZERO))
-    });
-    sampling_offsets
+
+    chunks.sort_by_key(|pos| pos.distance_squared(center));
+    chunks
 }
