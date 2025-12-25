@@ -21,7 +21,6 @@ impl Plugin for GreedyChunkRenderPlugin {
     }
 }
 
-impl GreedyChunkRenderPlugin {
     // https://github.com/TanTanDev/binary_greedy_mesher_demo/blob/main/src/greedy_mesher.rs#L251
     fn greedy_mesh_binary_plane(mut data: [u16; 16]) -> Vec<GreedyQuad> {
         let mut greedy_quads = vec![];
@@ -62,7 +61,7 @@ impl GreedyChunkRenderPlugin {
         greedy_quads
     }
 
-    fn generate_chunk_mesh(chunk: Arc<Chunk>) -> ChunkMesh {
+    pub fn generate_chunk_mesh(chunk: Arc<Chunk>) -> ChunkMesh {
         let mut vertices = vec![];
         let mut normals = vec![];
 
@@ -140,14 +139,14 @@ impl GreedyChunkRenderPlugin {
                 4 => Direction::Forward,
                 _ => Direction::Back,
             };
-            let quads_from_axis = Self::greedy_mesh_binary_plane(plane);
+            let quads_from_axis = greedy_mesh_binary_plane(plane);
 
             quads_from_axis.into_iter().for_each(|q| {
                 q.append_vertices(&mut vertices, &mut normals, face_dir, axis_pos as i32);
             });
         }
 
-        let indices = Self::generate_indices(vertices.len());
+        let indices = generate_indices(vertices.len());
         ChunkMesh::new(vertices, normals, indices)
     }
 
@@ -166,4 +165,3 @@ impl GreedyChunkRenderPlugin {
         });
         indices
     }
-}

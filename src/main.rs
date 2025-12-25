@@ -43,7 +43,7 @@ fn main() {
                 })
                 .set(WindowPlugin {
                     primary_window: Some(Window {
-                        title: "Voxel".to_string(),
+                        title: "🅱️oxel".to_string(),
                         present_mode: PresentMode::AutoNoVsync,
                         ..default()
                     }),
