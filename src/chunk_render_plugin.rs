@@ -1,5 +1,5 @@
 use crate::block::Block;
-use crate::chunk::{CHUNK_SIZE3, Chunk, CHUNK_SIZE};
+use crate::chunk::{CHUNK_SIZE, CHUNK_SIZE3, Chunk};
 use bevy::app::App;
 use bevy::asset::RenderAssetUsages;
 use bevy::mesh::{Indices, PrimitiveTopology};

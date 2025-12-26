@@ -58,14 +58,12 @@ impl ChunkSection {
 
 #[derive(Default, Debug)]
 pub struct Chunk {
-    pub sections: Vec<Arc<RwLock<ChunkSection>>>
+    pub sections: Vec<Arc<RwLock<ChunkSection>>>,
 }
 
 impl Chunk {
     pub fn new() -> Self {
-        Self {
-            sections: vec![],
-        }
+        Self { sections: vec![] }
     }
 
     pub fn generate(&mut self) {

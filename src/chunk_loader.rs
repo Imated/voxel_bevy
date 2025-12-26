@@ -1,10 +1,10 @@
-﻿use std::collections::HashSet;
+use crate::chunk::{CHUNK_SIZE, ChunkPos};
+use crate::world::World;
 use bevy::app::{App, Plugin, PreUpdate};
 use bevy::log::info;
 use bevy::math::{IVec2, IVec3, Vec3, Vec3Swizzles};
 use bevy::prelude::{Component, GlobalTransform, Query, ResMut};
-use crate::chunk::{ChunkPos, CHUNK_SIZE};
-use crate::world::World;
+use std::collections::HashSet;
 
 #[derive(Component, Default)]
 pub struct ChunkLoader {
@@ -30,20 +30,31 @@ impl Plugin for ChunkLoaderPlugin {
 }
 
 impl ChunkLoaderPlugin {
-    pub fn update_chunks(mut loaders: Query<(&mut ChunkLoader, &GlobalTransform)>, mut world: ResMut<World>) {
+    pub fn update_chunks(
+        loaders: Query<(&mut ChunkLoader, &GlobalTransform)>,
+        mut world: ResMut<World>,
+    ) {
         for (mut loader, transform) in loaders {
-            let current_chunk = (transform.translation() / Vec3::splat(CHUNK_SIZE as f32)).as_ivec3();
+            let current_chunk =
+                (transform.translation() / Vec3::splat(CHUNK_SIZE as f32)).as_ivec3();
             //info!("{:?}", current_chunk);
             //info!("{:?}", transform.translation());
             let previous_chunk = loader.previous_chunk;
-            let has_moved = current_chunk != previous_chunk;
-            loader.previous_chunk = current_chunk;
-            if !has_moved {
+            if current_chunk == previous_chunk {
                 continue;
             }
+            loader.previous_chunk = current_chunk;
 
-            let chunks_to_load: HashSet<ChunkPos> = get_chunks_in_radius(ChunkPos(current_chunk.xz()), loader.distance).iter().copied().collect();
-            let chunks_to_unload: HashSet<ChunkPos> = get_chunks_in_radius(ChunkPos(previous_chunk.xz()), loader.distance).iter().copied().collect();
+            let chunks_to_load: HashSet<ChunkPos> =
+                get_chunks_in_radius(ChunkPos(current_chunk.xz()), loader.distance)
+                    .iter()
+                    .copied()
+                    .collect();
+            let chunks_to_unload: HashSet<ChunkPos> =
+                get_chunks_in_radius(ChunkPos(previous_chunk.xz()), loader.distance)
+                    .iter()
+                    .copied()
+                    .collect();
 
             for &pos in chunks_to_load.difference(&chunks_to_unload) {
                 world.load_chunk(pos);

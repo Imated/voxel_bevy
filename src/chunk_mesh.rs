@@ -1,4 +1,4 @@
-﻿#[derive(Clone, Debug, Default, PartialOrd, PartialEq)]
+#[derive(Clone, Debug, Default, PartialOrd, PartialEq)]
 pub struct ChunkSectionMesh {
     pub vertices: Vec<[f32; 3]>,
     pub indices: Vec<u32>,

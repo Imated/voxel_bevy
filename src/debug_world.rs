@@ -1,12 +1,12 @@
-﻿use std::time::Duration;
-use bevy::prelude::{IntoScheduleConfigs, ReflectResource, Time};
+use crate::world::World;
 use bevy::app::{App, Plugin, Update};
+use bevy::prelude::{IntoScheduleConfigs, ReflectResource, Time};
 use bevy::prelude::{Reflect, Res, ResMut, Resource};
 use bevy::time::common_conditions::on_timer;
 use bevy_inspector_egui::__macro_exports::bevy_reflect::FromType;
 use bevy_inspector_egui::prelude::*;
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
-use crate::world::World;
+use std::time::Duration;
 
 #[derive(Resource, Default, Reflect, InspectorOptions)]
 #[reflect(Resource, InspectorOptions)]
@@ -36,15 +36,15 @@ impl Plugin for DebugWorldPlugin {
             .register_type::<WorldStats>()
             .add_plugins(ResourceInspectorPlugin::<WorldStats>::default())
             .add_plugins(ResourceInspectorPlugin::<Time>::default())
-            .add_systems(Update, Self::update_world_stats.run_if(on_timer(Duration::from_secs_f32(0.5))));
+            .add_systems(
+                Update,
+                Self::update_world_stats.run_if(on_timer(Duration::from_secs_f32(0.5))),
+            );
     }
 }
 
 impl DebugWorldPlugin {
-    pub fn update_world_stats(
-        world: Res<World>,
-        mut stats: ResMut<WorldStats>,
-    ) {
+    pub fn update_world_stats(world: Res<World>, mut stats: ResMut<WorldStats>) {
         stats.loaded_chunks = world.loaded_chunks.len();
         stats.data_to_load = world.chunks_data_to_load.len();
         stats.data_to_unload = world.chunks_data_to_unload.len();
@@ -59,19 +59,22 @@ impl DebugWorldPlugin {
 
         let limit = stats.sample_size;
 
-        stats.loaded_chunk_positions = world.loaded_chunks
+        stats.loaded_chunk_positions = world
+            .loaded_chunks
             .keys()
             .take(limit)
             .map(|&pos| (pos.0.x, pos.0.y))
             .collect();
 
-        stats.data_load_queue = world.chunks_data_to_unload
+        stats.data_load_queue = world
+            .chunks_data_to_unload
             .iter()
             .take(limit)
             .map(|&pos| (pos.0.x, pos.0.y))
             .collect();
 
-        stats.mesh_load_queue = world.chunks_mesh_to_load
+        stats.mesh_load_queue = world
+            .chunks_mesh_to_load
             .iter()
             .take(limit)
             .map(|&pos| (pos.0.x, pos.0.y))
