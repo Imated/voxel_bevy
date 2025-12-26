@@ -1,12 +1,12 @@
 ﻿use crate::chunk::{Chunk, ChunkPos, CHUNK_SIZE};
 use crate::chunk_mesh::ChunkSectionMesh;
 use crate::greedy_chunk_render_plugin::generate_section_mesh;
-use bevy::app::{App, Plugin, Update};
-use bevy::asset::{Assets, RenderAssetUsages};
+use bevy::app::{App, Plugin, Startup, Update};
+use bevy::asset::{Assets, Handle, RenderAssetUsages};
 use bevy::color::{Color, Srgba};
 use bevy::mesh::{Indices, Mesh, Mesh3d, PrimitiveTopology};
 use bevy::pbr::{MeshMaterial3d, StandardMaterial};
-use bevy::prelude::{Commands, Entity, ResMut, Resource, Transform};
+use bevy::prelude::{Commands, Entity, Res, ResMut, Resource, Transform};
 use bevy::tasks::Task;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -48,12 +48,23 @@ pub struct WorldPlugin;
 
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(World::default()).add_systems(Update, Self::update_chunks);
+        app.insert_resource(World::default()).add_systems(Update, Self::update_chunks).add_systems(Startup, Self::setup);
     }
 }
 
+#[derive(Resource)]
+struct ChunkMaterial(Handle<StandardMaterial>);
+
 impl WorldPlugin {
-    pub fn update_chunks(mut commands: Commands, mut world: ResMut<World>, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>) {
+    pub fn setup(mut commands: Commands, mut materials: ResMut<Assets<StandardMaterial>>) {
+        let material = materials.add(StandardMaterial::from_color(
+            Color::Srgba(Srgba::rgb(0.3, 0.5, 0.3))
+        ));
+
+        commands.insert_resource(ChunkMaterial(material));
+    }
+
+    pub fn update_chunks(mut commands: Commands, mut world: ResMut<World>, mut meshes: ResMut<Assets<Mesh>>, mut material: Res<ChunkMaterial>) {
         let chunks_to_load: Vec<_> = world.chunks_data_to_load.drain(..).collect();
 
         for chunk_pos in chunks_to_load {
@@ -66,6 +77,9 @@ impl WorldPlugin {
             let mut section_entities = vec![];
             for (section_y, section) in chunk.sections.iter().enumerate() {
                 let section_data = section.read().unwrap();
+                if section_data.is_empty() {
+                    continue;
+                }
                 let section_mesh = generate_section_mesh(&section_data);
 
                 let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::RENDER_WORLD);
@@ -75,9 +89,7 @@ impl WorldPlugin {
 
                 let entity = commands.spawn((
                     Mesh3d(meshes.add(mesh)),
-                    MeshMaterial3d(materials.add(StandardMaterial::from_color(
-                        Color::Srgba(Srgba::rgb(0.3, 0.5, 0.3))
-                    ))),
+                    MeshMaterial3d(material.0.clone()),
                     Transform::from_xyz(
                         chunk_pos.0.x as f32 * CHUNK_SIZE as f32,
                         CHUNK_SIZE as f32 * section_y as f32,

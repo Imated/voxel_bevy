@@ -1,7 +1,7 @@
-use std::sync::{Arc, RwLock};
-use bevy::math::IVec2;
 use crate::block::Block;
+use bevy::math::IVec2;
 use bevy::prelude::{Component, IVec3};
+use std::sync::{Arc, RwLock};
 
 pub const CHUNK_SIZE: i32 = 16;
 pub const CHUNK_SIZE2: i32 = 256;
@@ -26,6 +26,17 @@ impl ChunkSection {
         Self {
             blocks: vec![Block(0); (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE) as usize],
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        let mut empty = true;
+        for i in 0..CHUNK_SIZE3 {
+            if self.blocks[i as usize].id() != 0 {
+                empty = false;
+            }
+        }
+
+        empty
     }
 
     pub fn get_by_xyz(&self, x: i32, y: i32, z: i32) -> Block {
