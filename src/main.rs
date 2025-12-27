@@ -2,32 +2,31 @@ mod block;
 mod chunk;
 mod chunk_loader;
 mod chunk_mesh;
-mod chunk_render_plugin;
 mod debug_world;
 mod greedy_chunk_render_plugin;
 mod quad;
+mod section_neighbors;
 mod world;
 
 use crate::chunk_loader::{ChunkLoader, ChunkLoaderPlugin};
 use crate::debug_world::DebugWorldPlugin;
 use crate::greedy_chunk_render_plugin::GreedyChunkRenderPlugin;
 use crate::world::WorldPlugin;
-use bevy::DefaultPlugins;
-use bevy::app::{App, PluginGroup, PostStartup, Startup};
+use bevy::app::{App, PluginGroup, PostStartup};
 use bevy::camera::Camera3d;
 use bevy::color::palettes::basic::WHITE;
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::light::DirectionalLight;
 use bevy::math::Vec3;
 use bevy::pbr::wireframe::{WireframeConfig, WireframePlugin};
-use bevy::prelude::{Commands, Single, Transform, Window, With, default};
-use bevy::render::RenderPlugin;
+use bevy::prelude::{default, Commands, Single, Transform, Window, With};
 use bevy::render::render_resource::WgpuFeatures;
 use bevy::render::settings::{RenderCreation, WgpuSettings};
+use bevy::render::RenderPlugin;
 use bevy::window::{CursorGrabMode, CursorOptions, PresentMode, PrimaryWindow, WindowPlugin};
-use bevy_flycam::{FlyCam, NoCameraPlayerPlugin, PlayerPlugin};
+use bevy::DefaultPlugins;
+use bevy_flycam::{FlyCam, NoCameraPlayerPlugin};
 use bevy_inspector_egui::bevy_egui::EguiPlugin;
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 fn main() {
     App::new()

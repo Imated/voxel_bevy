@@ -10,6 +10,7 @@ use bevy::prelude::{Commands, Entity, IntoScheduleConfigs, Res, ResMut, Resource
 use bevy::tasks::{AsyncComputeTaskPool, Task, block_on, poll_once};
 use std::collections::HashMap;
 use std::sync::Arc;
+use crate::section_neighbors::SectionNeighbors;
 
 #[derive(Resource, Debug, Default)]
 pub struct World {
@@ -55,7 +56,15 @@ impl Plugin for WorldPlugin {
         app.insert_resource(World::default())
             .add_systems(Startup, Self::setup)
             .add_systems(PostUpdate, (Self::start_data_tasks, Self::start_mesh_tasks))
-            .add_systems(Update, ((Self::join_data_tasks, Self::join_mesh_tanks), Self::unload_meshes, Self::unload_data).chain());
+            .add_systems(
+                Update,
+                (
+                    (Self::join_data_tasks, Self::join_mesh_tanks),
+                    Self::unload_meshes,
+                    Self::unload_data,
+                )
+                    .chain(),
+            );
     }
 }
 
@@ -77,7 +86,9 @@ impl WorldPlugin {
         for chunk_pos in chunks_to_unload {
             let chunk = world.loaded_chunks.remove(&chunk_pos);
             if let Some(chunk) = chunk {
-                world.chunks_mesh_to_unload.push((chunk_pos, chunk.sections.len()));
+                world
+                    .chunks_mesh_to_unload
+                    .push((chunk_pos, chunk.sections.len()));
             }
         }
     }
@@ -103,8 +114,7 @@ impl WorldPlugin {
         let chunks_to_load: Vec<_> = world.chunks_data_to_load.drain(..).collect();
         for chunk_pos in chunks_to_load {
             if world.loaded_chunks.contains_key(&chunk_pos)
-                || world.data_tasks.contains_key(&chunk_pos)
-            {
+                || world.data_tasks.contains_key(&chunk_pos) {
                 continue;
             }
 
@@ -138,8 +148,8 @@ impl WorldPlugin {
         let chunks_to_mesh: Vec<_> = world.chunks_mesh_to_load.drain(..).collect();
         for chunk_pos in chunks_to_mesh {
             let chunk = Arc::clone(&world.loaded_chunks[&chunk_pos]);
-            for (section_y, section) in chunk.sections.iter().enumerate() {
-                let section = Arc::clone(section);
+            for section_y in 0..chunk.sections.len() {
+                let section = SectionNeighbors::new(&world.loaded_chunks, chunk_pos, section_y);
 
                 let task = task_pool.spawn::<Option<ChunkSectionMesh>>(async move {
                     generate_section_mesh(section)
@@ -155,7 +165,7 @@ impl WorldPlugin {
         mut meshes: ResMut<Assets<Mesh>>,
         material: Res<ChunkMaterial>,
     ) {
-        let mut completed_sections  = vec![];
+        let mut completed_sections = vec![];
 
         world.mesh_tasks.retain(|&(chunk_pos, section_y), task| {
             let status = block_on(poll_once(task));
@@ -197,7 +207,9 @@ impl WorldPlugin {
                 ))
                 .id();
 
-            world.section_entities.insert((chunk_pos, section_y), entity);
+            world
+                .section_entities
+                .insert((chunk_pos, section_y), entity);
         }
     }
 

@@ -5,6 +5,7 @@ use crate::chunk::{
 };
 use crate::chunk_mesh::ChunkSectionMesh;
 use crate::quad::{Direction, GreedyQuad};
+use crate::section_neighbors::SectionNeighbors;
 use bevy::app::App;
 use bevy::prelude::*;
 use bevy::reflect::Array;
@@ -58,8 +59,19 @@ fn greedy_mesh_binary_plane(mut data: [u16; 16]) -> Vec<GreedyQuad> {
     greedy_quads
 }
 
-pub fn generate_section_mesh(section: Arc<RwLock<ChunkSection>>) -> Option<ChunkSectionMesh> {
-    let section_data = section.read().unwrap();
+#[inline]
+fn get_block_at_section(section: &Option<Arc<RwLock<ChunkSection>>>, x: i32, y: i32, z: i32) -> Block {
+    if section.is_none() {
+        return Block(0)
+    }
+
+    let up = section.as_ref().unwrap();
+    let up_section = up.read().unwrap();
+    up_section.get_by_xyz(x, y, z).unwrap()
+}
+
+pub fn generate_section_mesh(sections: SectionNeighbors) -> Option<ChunkSectionMesh> {
+    let section_data = sections.center.read().unwrap();
     if section_data.is_empty() {
         return None;
     }
@@ -75,14 +87,46 @@ pub fn generate_section_mesh(section: Arc<RwLock<ChunkSection>>) -> Option<Chunk
     for y in 0..PADDED_CHUNK_SIZE_USIZE {
         for z in 0..PADDED_CHUNK_SIZE_USIZE {
             for x in 0..PADDED_CHUNK_SIZE_USIZE {
-                let block = section_data.get_by_xyz(x as i32 - 1, y as i32 - 1, z as i32 - 1);
+                let block_x = x as i32 - 1i32;
+                let block_y = y as i32 - 1i32;
+                let block_z = z as i32 - 1i32;
+
+                let section_x = block_x.rem_euclid(CHUNK_SIZE);
+                let section_y = block_y.rem_euclid(CHUNK_SIZE);
+                let section_z = block_z.rem_euclid(CHUNK_SIZE);
+
+                assert!(section_x >= 0 && section_x < CHUNK_SIZE);
+                assert!(section_y >= 0 && section_y < CHUNK_SIZE);
+                assert!(section_z >= 0 && section_z < CHUNK_SIZE);
+
+                let block = section_data.get_by_xyz(block_x, block_y, block_z).unwrap_or_else(|| {
+                    if block_y < 0 {
+                        return get_block_at_section(&sections.down, section_x, section_y, section_z);
+                    } else if block_y > CHUNK_SIZE {
+                        return get_block_at_section(&sections.up, section_x, section_y, section_z);
+                    }
+
+                    if block_x < 0 {
+                        return get_block_at_section(&sections.west, section_x, section_y, section_z);
+                    }
+                    else if block_x > CHUNK_SIZE {
+                        return get_block_at_section(&sections.east, section_x, section_y, section_z);
+                    }
+
+                    if block_z < 0 {
+                        return get_block_at_section(&sections.south, section_x, section_y, section_z);
+                    }
+                    else if block_z > CHUNK_SIZE {
+                        return get_block_at_section(&sections.north, section_x, section_y, section_z);
+                    }
+
+                    Block(0)
+                });
+
                 if block.is_solid() {
                     solid_voxels_per_axis[x + z * PADDED_CHUNK_SIZE_USIZE] |= 1u64 << y;
-                    solid_voxels_per_axis
-                        [z + y * PADDED_CHUNK_SIZE_USIZE + PADDED_CHUNK_SIZE2_USIZE] |= 1u64 << x;
-                    solid_voxels_per_axis
-                        [x + y * PADDED_CHUNK_SIZE_USIZE + PADDED_CHUNK_SIZE2_USIZE * 2] |=
-                        1u64 << z;
+                    solid_voxels_per_axis[z + y * PADDED_CHUNK_SIZE_USIZE + PADDED_CHUNK_SIZE2_USIZE] |= 1u64 << x;
+                    solid_voxels_per_axis[x + y * PADDED_CHUNK_SIZE_USIZE + PADDED_CHUNK_SIZE2_USIZE * 2] |= 1u64 << z;
                 }
             }
         }
@@ -126,7 +170,7 @@ pub fn generate_section_mesh(section: Arc<RwLock<ChunkSection>>) -> Option<Chunk
                         _ => ivec3(x as i32, z as i32, y as i32),     // forward | back
                     };
 
-                    let block = section_data.get_by_xyz(voxel_pos.x, voxel_pos.y, voxel_pos.z);
+                    let block = section_data.get_by_xyz(voxel_pos.x, voxel_pos.y, voxel_pos.z).unwrap();
                     //let key = (axis, block, y);
                     let data = data.entry((axis as u8, block, y as u16)).or_default();
                     data[x] |= 1u16 << z as u16;

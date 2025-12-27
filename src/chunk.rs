@@ -39,12 +39,12 @@ impl ChunkSection {
         empty
     }
 
-    pub fn get_by_xyz(&self, x: i32, y: i32, z: i32) -> Block {
+    pub fn get_by_xyz(&self, x: i32, y: i32, z: i32) -> Option<Block> {
         if x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE {
-            return Block(0);
+            return None;
         }
 
-        self.blocks[(x + (y * CHUNK_SIZE) + (z * CHUNK_SIZE2)) as usize]
+        Some(self.blocks[(x + (y * CHUNK_SIZE) + (z * CHUNK_SIZE2)) as usize])
     }
 
     pub fn set_by_xyz(&mut self, x: i32, y: i32, z: i32, id: Block) {
@@ -77,7 +77,7 @@ impl Chunk {
                         let dy = y as f32 - 8.0;
                         let dz = z as f32 - 8.0;
 
-                        let voxel = if dx * dx + dy * dy + dz * dz < 64.0 {
+                        let voxel = if dx * dx + dy * dy + dz * dz <= 64.0 {
                             Block(1)
                         } else {
                             Block(0)
@@ -104,10 +104,10 @@ impl Chunk {
         IVec3 { x, y, z }
     }
 
-    pub fn get_by_xyz(&self, x: i32, y: i32, z: i32) -> Block {
+    pub fn get_by_xyz(&self, x: i32, y: i32, z: i32) -> Option<Block> {
         let section = y / CHUNK_SIZE;
         if section >= self.sections.len() as i32 {
-            return Block(0);
+            return None;
         }
         let y_in_section = y % CHUNK_SIZE;
         let guard = self.sections[section as usize].read().unwrap();
@@ -124,7 +124,7 @@ impl Chunk {
         guard.set_by_xyz(x, y_in_section, z, id);
     }
 
-    pub fn get(&self, coords: IVec3) -> Block {
+    pub fn get(&self, coords: IVec3) -> Option<Block> {
         let x = coords.x;
         let y = coords.y;
         let z = coords.z;
