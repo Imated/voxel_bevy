@@ -77,7 +77,7 @@ impl Chunk {
                         let dy = y as f32 - 8.0;
                         let dz = z as f32 - 8.0;
 
-                        let voxel = if dx * dx + dy * dy + dz * dz <= 64.0 {
+                        let voxel = if dx * dx + dy * dy + dz * dz < 9.0*9.0 {
                             Block(1)
                         } else {
                             Block(0)

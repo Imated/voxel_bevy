@@ -102,21 +102,21 @@ pub fn generate_section_mesh(sections: SectionNeighbors) -> Option<ChunkSectionM
                 let block = section_data.get_by_xyz(block_x, block_y, block_z).unwrap_or_else(|| {
                     if block_y < 0 {
                         return get_block_at_section(&sections.down, section_x, section_y, section_z);
-                    } else if block_y > CHUNK_SIZE {
+                    } else if block_y >= CHUNK_SIZE {
                         return get_block_at_section(&sections.up, section_x, section_y, section_z);
                     }
 
                     if block_x < 0 {
                         return get_block_at_section(&sections.west, section_x, section_y, section_z);
                     }
-                    else if block_x > CHUNK_SIZE {
+                    else if block_x >= CHUNK_SIZE {
                         return get_block_at_section(&sections.east, section_x, section_y, section_z);
                     }
 
                     if block_z < 0 {
                         return get_block_at_section(&sections.south, section_x, section_y, section_z);
                     }
-                    else if block_z > CHUNK_SIZE {
+                    else if block_z >= CHUNK_SIZE {
                         return get_block_at_section(&sections.north, section_x, section_y, section_z);
                     }
 

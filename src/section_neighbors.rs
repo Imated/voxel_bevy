@@ -49,11 +49,4 @@ impl SectionNeighbors {
             west,
         }
     }
-
-    pub fn has_all_neighbors(&self) -> bool {
-        self.north.is_some()
-            && self.south.is_some()
-            && self.west.is_some()
-            && self.east.is_some()
-    }
 }
