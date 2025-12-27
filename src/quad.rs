@@ -1,4 +1,3 @@
-use bevy::color::Color;
 use bevy::math::IVec3;
 
 // based on https://github.com/TanTanDev/binary_greedy_mesher_demo/blob/main/src/quad.rs
@@ -21,17 +20,6 @@ impl Direction {
             Direction::Right => IVec3::new(offset, y, x),
             Direction::Forward => IVec3::new(x, y, offset),
             Direction::Back => IVec3::new(x, y, offset),
-        }
-    }
-
-    pub fn direction_in_front(&self) -> IVec3 {
-        match self {
-            Direction::Up => IVec3::Y,
-            Direction::Down => IVec3::NEG_Y,
-            Direction::Left => IVec3::NEG_X,
-            Direction::Right => IVec3::X,
-            Direction::Forward => IVec3::NEG_Z,
-            Direction::Back => IVec3::Z,
         }
     }
 

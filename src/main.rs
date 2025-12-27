@@ -7,10 +7,10 @@ mod greedy_chunk_render_plugin;
 mod quad;
 mod section_neighbors;
 mod world;
+mod chunk_material;
 
 use crate::chunk_loader::{ChunkLoader, ChunkLoaderPlugin};
 use crate::debug_world::DebugWorldPlugin;
-use crate::greedy_chunk_render_plugin::GreedyChunkRenderPlugin;
 use crate::world::WorldPlugin;
 use bevy::app::{App, PluginGroup, PostStartup};
 use bevy::camera::Camera3d;
@@ -25,8 +25,10 @@ use bevy::render::settings::{RenderCreation, WgpuSettings};
 use bevy::render::RenderPlugin;
 use bevy::window::{CursorGrabMode, CursorOptions, PresentMode, PrimaryWindow, WindowPlugin};
 use bevy::DefaultPlugins;
+use bevy::pbr::MaterialPlugin;
 use bevy_flycam::{FlyCam, NoCameraPlayerPlugin};
 use bevy_inspector_egui::bevy_egui::EguiPlugin;
+use crate::chunk_material::ChunkMaterial;
 
 fn main() {
     App::new()
@@ -55,13 +57,12 @@ fn main() {
             WorldPlugin,
             ChunkLoaderPlugin,
             DebugWorldPlugin,
+            MaterialPlugin::<ChunkMaterial>::default()
         ))
         .insert_resource(WireframeConfig {
             global: true,
             default_color: WHITE.into(),
         })
-        //.add_plugins(ChunkRenderPlugin::default())
-        .add_plugins(GreedyChunkRenderPlugin::default())
         .add_plugins(NoCameraPlayerPlugin)
         .add_systems(PostStartup, setup)
         .run();

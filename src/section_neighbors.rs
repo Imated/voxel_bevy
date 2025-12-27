@@ -1,6 +1,5 @@
 use crate::chunk::{Chunk, ChunkPos, ChunkSection};
 use bevy::math::IVec2;
-use bevy::tasks::futures_lite::StreamExt;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 

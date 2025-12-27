@@ -1,23 +1,16 @@
 use crate::block::Block;
 use crate::chunk::{
-    CHUNK_SIZE, ChunkSection, PADDED_CHUNK_SIZE_USIZE, PADDED_CHUNK_SIZE2_USIZE,
-    PADDED_CHUNK_SIZE3_USIZE,
+    ChunkSection, CHUNK_SIZE, PADDED_CHUNK_SIZE2_USIZE, PADDED_CHUNK_SIZE3_USIZE,
+    PADDED_CHUNK_SIZE_USIZE,
 };
 use crate::chunk_mesh::ChunkSectionMesh;
 use crate::quad::{Direction, GreedyQuad};
 use crate::section_neighbors::SectionNeighbors;
-use bevy::app::App;
 use bevy::prelude::*;
 use bevy::reflect::Array;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
-#[derive(Default)]
-pub struct GreedyChunkRenderPlugin;
-
-impl Plugin for GreedyChunkRenderPlugin {
-    fn build(&self, app: &mut App) {}
-}
 
 // https://github.com/TanTanDev/binary_greedy_mesher_demo/blob/main/src/greedy_mesher.rs#L251
 fn greedy_mesh_binary_plane(mut data: [u16; 16]) -> Vec<GreedyQuad> {
@@ -80,7 +73,7 @@ pub fn generate_section_mesh(sections: SectionNeighbors) -> Option<ChunkSectionM
     let mut normals = vec![];
 
     // solid voxels as binary per axis x, y, z
-    let mut solid_voxels_per_axis = vec![0u64; (3 * PADDED_CHUNK_SIZE3_USIZE)];
+    let mut solid_voxels_per_axis = vec![0u64; 3 * PADDED_CHUNK_SIZE3_USIZE];
     // cull mask for greedy slicing based on solids on previous axis column
     let mut voxels_face_mask = [[[0u64; PADDED_CHUNK_SIZE_USIZE]; PADDED_CHUNK_SIZE_USIZE]; 6];
 
@@ -179,7 +172,7 @@ pub fn generate_section_mesh(sections: SectionNeighbors) -> Option<ChunkSectionM
         }
     }
 
-    for (&(axis, block, axis_pos), &plane) in data.iter() {
+    for (&(axis, _block, axis_pos), &plane) in data.iter() {
         let face_dir = match axis {
             0 => Direction::Down,
             1 => Direction::Up,

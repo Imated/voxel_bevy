@@ -1,7 +1,5 @@
 ﻿use std::cmp::PartialEq;
 
-pub const MAX_BLOCK_ID: usize = 3;
-
 /// Block representation
 ///
 /// msb  ``u3: orientation``

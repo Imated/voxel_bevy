@@ -10,6 +10,8 @@ use bevy::prelude::{Commands, Entity, IntoScheduleConfigs, Res, ResMut, Resource
 use bevy::tasks::{AsyncComputeTaskPool, Task, block_on, poll_once};
 use std::collections::HashMap;
 use std::sync::Arc;
+use bevy::math::Vec4;
+use crate::chunk_material::ChunkMaterial;
 use crate::section_neighbors::SectionNeighbors;
 
 #[derive(Resource, Debug, Default)]
@@ -69,15 +71,15 @@ impl Plugin for WorldPlugin {
 }
 
 #[derive(Resource)]
-struct ChunkMaterial(Handle<StandardMaterial>);
+struct GlobalChunkMaterial(Handle<ChunkMaterial>);
 
 impl WorldPlugin {
-    pub fn setup(mut commands: Commands, mut materials: ResMut<Assets<StandardMaterial>>) {
-        let material = materials.add(StandardMaterial::from_color(Color::Srgba(Srgba::rgb(
-            0.3, 0.5, 0.3,
-        ))));
+    pub fn setup(mut commands: Commands, mut materials: ResMut<Assets<ChunkMaterial>>) {
+        let material = materials.add(ChunkMaterial {
+            color: Vec4::new(0.3, 0.5, 0.3, 1.0),
+        });
 
-        commands.insert_resource(ChunkMaterial(material));
+        commands.insert_resource(GlobalChunkMaterial(material));
     }
 
     pub fn unload_data(mut world: ResMut<World>) {
@@ -109,7 +111,7 @@ impl WorldPlugin {
         }
     }
 
-    pub fn start_data_tasks(mut world: ResMut<World>) {
+    fn start_data_tasks(mut world: ResMut<World>) {
         let task_pool = AsyncComputeTaskPool::get();
         let chunks_to_load: Vec<_> = world.chunks_data_to_load.drain(..).collect();
         for chunk_pos in chunks_to_load {
@@ -125,7 +127,7 @@ impl WorldPlugin {
         }
     }
 
-    pub fn join_data_tasks(mut world: ResMut<World>) {
+    fn join_data_tasks(mut world: ResMut<World>) {
         let mut completed_chunks = vec![];
 
         world.data_tasks.retain(|&chunk_pos, task| {
@@ -143,7 +145,7 @@ impl WorldPlugin {
         }
     }
 
-    pub fn start_mesh_tasks(mut world: ResMut<World>) {
+    fn start_mesh_tasks(mut world: ResMut<World>) {
         let task_pool = AsyncComputeTaskPool::get();
         let chunks_to_mesh: Vec<_> = world.chunks_mesh_to_load.drain(..).collect();
         for chunk_pos in chunks_to_mesh {
@@ -159,11 +161,11 @@ impl WorldPlugin {
         }
     }
 
-    pub fn join_mesh_tanks(
+    fn join_mesh_tanks(
         mut commands: Commands,
         mut world: ResMut<World>,
         mut meshes: ResMut<Assets<Mesh>>,
-        material: Res<ChunkMaterial>,
+        material: Res<GlobalChunkMaterial>,
     ) {
         let mut completed_sections = vec![];
 
@@ -213,7 +215,7 @@ impl WorldPlugin {
         }
     }
 
-    pub fn generate_chunk_at(coord: ChunkPos) -> Chunk {
+    pub fn generate_chunk_at(_coord: ChunkPos) -> Chunk {
         let mut chunk = Chunk::new();
         chunk.generate();
         chunk
