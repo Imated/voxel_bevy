@@ -1,6 +1,12 @@
-﻿#import bevy_pbr::{
+#import bevy_pbr::{
+    prepass_bindings,
+    mesh_functions,
     prepass_io::{FragmentOutput},
+    skinning,
+    morph,
+    mesh_view_bindings::{view, previous_view_proj},
 }
+
 #import bevy_pbr::mesh_functions::{mesh_normal_local_to_world, get_world_from_local, mesh_position_local_to_clip}
 #import bevy_render::instance_index::{get_instance_index}
 
@@ -32,13 +38,16 @@ fn prepass_vertex(vertex: Vertex) -> VertexOutput {
 }
 
 /// -----------------FRAGMENT------------------
-
+#ifdef PREPASS_FRAGMENT
 @fragment
-fn fragment(in: VertexOutput) -> FragmentOutput {
+fn fragment(in: VertexOutput) -> prepass_io::FragmentOutput {
     var out: FragmentOutput;
 
     out.frag_depth = in.clip_position.z;
+#ifdef NORMAL_PREPASS
     out.normal = vec4(in.world_normal * 0.5 + vec3(0.5), 1.0);
+#endif
 
     return out;
 }
+#endif

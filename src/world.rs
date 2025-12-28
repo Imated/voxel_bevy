@@ -1,18 +1,17 @@
-use crate::chunk::{CHUNK_SIZE, Chunk, ChunkPos};
+use crate::chunk::{Chunk, ChunkPos, CHUNK_SIZE};
+use crate::chunk_material::ChunkMaterial;
 use crate::chunk_mesh::ChunkSectionMesh;
 use crate::greedy_chunk_render_plugin::generate_section_mesh;
+use crate::lighting::rendering::GlobalChunkMaterial;
+use crate::section_neighbors::SectionNeighbors;
 use bevy::app::{App, Plugin, PostUpdate, Startup, Update};
-use bevy::asset::{Assets, Handle, RenderAssetUsages};
-use bevy::color::{Color, Srgba};
+use bevy::asset::{Assets, RenderAssetUsages};
 use bevy::mesh::{Indices, Mesh, Mesh3d, PrimitiveTopology};
-use bevy::pbr::{MeshMaterial3d, StandardMaterial};
+use bevy::pbr::MeshMaterial3d;
 use bevy::prelude::{Commands, Entity, IntoScheduleConfigs, Res, ResMut, Resource, Transform};
-use bevy::tasks::{AsyncComputeTaskPool, Task, block_on, poll_once};
+use bevy::tasks::{block_on, poll_once, AsyncComputeTaskPool, Task};
 use std::collections::HashMap;
 use std::sync::Arc;
-use bevy::math::Vec4;
-use crate::chunk_material::ChunkMaterial;
-use crate::section_neighbors::SectionNeighbors;
 
 #[derive(Resource, Debug, Default)]
 pub struct World {
@@ -70,16 +69,11 @@ impl Plugin for WorldPlugin {
     }
 }
 
-#[derive(Resource)]
-struct GlobalChunkMaterial(Handle<ChunkMaterial>);
+
 
 impl WorldPlugin {
     pub fn setup(mut commands: Commands, mut materials: ResMut<Assets<ChunkMaterial>>) {
-        let material = materials.add(ChunkMaterial {
-            color: Vec4::new(0.3, 0.5, 0.3, 1.0),
-        });
 
-        commands.insert_resource(GlobalChunkMaterial(material));
     }
 
     pub fn unload_data(mut world: ResMut<World>) {

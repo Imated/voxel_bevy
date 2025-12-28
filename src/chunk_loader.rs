@@ -1,4 +1,4 @@
-use crate::chunk::{ChunkPos, CHUNK_SIZE};
+use crate::chunk::{CHUNK_SIZE, ChunkPos};
 use crate::world::World;
 use bevy::app::{App, Plugin, PreUpdate};
 use bevy::math::{IVec2, IVec3, Vec3, Vec3Swizzles};
