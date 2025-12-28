@@ -30,14 +30,6 @@ impl Material for ChunkMaterial {
         "shaders/testt.wgsl".into()
     }
 
-    fn prepass_vertex_shader() -> ShaderRef {
-        "shaders/chunk_prepass.wgsl".into()
-    }
-
-    fn prepass_fragment_shader() -> ShaderRef {
-        "shaders/chunk_prepass.wgsl".into()
-    }
-
     fn specialize(
         _pipeline: &MaterialPipeline,
         descriptor: &mut RenderPipelineDescriptor,

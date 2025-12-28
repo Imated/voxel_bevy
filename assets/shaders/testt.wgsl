@@ -69,34 +69,46 @@ struct MaterialProperties {
 
 @fragment
 fn fragment(in: VertexOutput) -> FragmentOutput {
-    var pbr_input = pbr_input_new();
+    //var pbr_input = pbr_input_new();
 
-    pbr_input.flags = mesh[in.instance_index].flags;
-    pbr_input.V = calculate_view(in.world_position, false);
-    pbr_input.frag_coord = in.clip_position;
-    pbr_input.world_position = in.world_position;
+    //pbr_input.flags = mesh[in.instance_index].flags;
+    //pbr_input.V = calculate_view(in.world_position, false);
+    //pbr_input.frag_coord = in.clip_position;
+    //pbr_input.world_position = in.world_position;
 
-    pbr_input.world_normal = prepare_world_normal(
-        in.world_normal,
-        false,
-        false,
-    );
+    //pbr_input.world_normal = prepare_world_normal(
+    //    in.world_normal,
+    //    false,
+    //    false,
+    //);
 
-    pbr_input.N = normalize(pbr_input.world_normal);
+    //pbr_input.N = normalize(pbr_input.world_normal);
 
-    let base_color = material.base_color;
+    let base_color = material.base_color.rgb;
     let emissive_color = material.emissive_color_intensity.rgb;
     let emissive_intensity = material.emissive_color_intensity.w;
     let metallic = material.metallic_roughness_tbd_tbd.x;
     let roughness = material.metallic_roughness_tbd_tbd.y;
 
-    pbr_input.material.base_color = base_color;
-    pbr_input.material.perceptual_roughness = roughness;
-    pbr_input.material.metallic = metallic;
+    //pbr_input.material.base_color = base_color;
+    //pbr_input.material.perceptual_roughness = roughness;
+    //pbr_input.material.metallic = metallic;
 
     var out: FragmentOutput;
-    out.color = apply_pbr_lighting(pbr_input);
-    out.color = main_pass_post_lighting_processing(pbr_input, out.color);
+    //out.color = apply_pbr_lighting(pbr_input);
+    //out.color = main_pass_post_lighting_processing(pbr_input, out.color);
+
+    let N = normalize(in.world_normal);
+    let V = normalize(view.world_position - in.world_position.xyz);
+    let L = normalize(vec3<f32>(0.5, 0.8, 0.3));
+    let diffuse = max(dot(N, L), 0.0);
+    let H = normalize(L + V);
+    let spec = pow(max(dot(N, H), 0.0), 32.0) * 0.2;
+    let ambient = 0.1;
+    let lighting = ambient + diffuse + spec;
+
+
+    out.color = vec4<f32>(base_color * lighting, 1.0);
 
     return out;
 }

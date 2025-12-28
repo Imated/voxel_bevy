@@ -7,10 +7,15 @@ use bevy::app::{App, Plugin, PostUpdate, Update};
 use bevy::asset::{Assets, RenderAssetUsages};
 use bevy::mesh::{Indices, Mesh, Mesh3d, PrimitiveTopology};
 use bevy::pbr::MeshMaterial3d;
-use bevy::prelude::{Commands, Entity, IntoScheduleConfigs, Res, ResMut, Resource, Transform};
+use bevy::prelude::{Commands, Entity, IntoScheduleConfigs, Query, Res, ResMut, Resource, Transform, ViewVisibility, With};
 use bevy::tasks::{AsyncComputeTaskPool, Task, block_on, poll_once};
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Duration;
+use bevy::camera::Camera;
+use bevy::camera::primitives::Aabb;
+use bevy::math::Vec3;
+use bevy::time::common_conditions::on_timer;
 use crate::chunk_material::ATTRIBUTE_VOXEL;
 
 #[derive(Resource, Debug, Default)]
@@ -192,12 +197,11 @@ impl WorldPlugin {
                         chunk_pos.0.y as f32 * CHUNK_SIZE as f32,
                     ),
                     chunk_pos,
+                    Aabb::from_min_max(Vec3::ZERO, Vec3::splat(CHUNK_SIZE as f32))
                 ))
                 .id();
 
-            world
-                .section_entities
-                .insert((chunk_pos, section_y), entity);
+            world.section_entities.insert((chunk_pos, section_y), entity);
         }
     }
 

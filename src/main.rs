@@ -27,7 +27,7 @@ use bevy::light::light_consts::lux::OVERCAST_DAY;
 use bevy::math::{Quat, vec3};
 use bevy::pbr::MaterialPlugin;
 use bevy::pbr::wireframe::WireframeConfig;
-use bevy::prelude::Name;
+use bevy::prelude::{Msaa, Name};
 use bevy::prelude::{Color, Commands, Single, Transform, Window, With, default};
 use bevy::render::RenderPlugin;
 use bevy::render::render_resource::WgpuFeatures;
@@ -60,10 +60,10 @@ fn main() {
             //WireframePlugin::default(),
             FrameTimeDiagnosticsPlugin::default(),
             LogDiagnosticsPlugin::default(),
-            EguiPlugin::default(),
+            //EguiPlugin::default(),
             WorldPlugin,
             ChunkLoaderPlugin,
-            DebugWorldPlugin,
+            //DebugWorldPlugin,
             MaterialPlugin::<ChunkMaterial>::default(),
             CustomRenderPlugin,
         ))
@@ -99,7 +99,7 @@ pub fn setup(
         DirectionalLight {
             illuminance: OVERCAST_DAY,
             color: Color::LinearRgba(LinearRgba::rgb(243.0 / 255.0, 195.0 / 255.0, 110.0 / 255.0)),
-            shadows_enabled: true,
+            shadows_enabled: false,
             ..default()
         },
         Name::new("Sun"),
