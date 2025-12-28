@@ -70,12 +70,11 @@ pub fn generate_section_mesh(sections: SectionNeighbors) -> Option<ChunkSectionM
     }
 
     let mut vertices = vec![];
-    let mut normals = vec![];
 
     // solid voxels as binary per axis x, y, z
-    let mut solid_voxels_per_axis = vec![0u64; 3 * PADDED_CHUNK_SIZE3_USIZE];
+    let mut solid_voxels_per_axis = vec![0u32; 3 * PADDED_CHUNK_SIZE3_USIZE];
     // cull mask for greedy slicing based on solids on previous axis column
-    let mut voxels_face_mask = [[[0u64; PADDED_CHUNK_SIZE_USIZE]; PADDED_CHUNK_SIZE_USIZE]; 6];
+    let mut voxels_face_mask = [[[0u32; PADDED_CHUNK_SIZE_USIZE]; PADDED_CHUNK_SIZE_USIZE]; 6];
 
     for y in 0..PADDED_CHUNK_SIZE_USIZE {
         for z in 0..PADDED_CHUNK_SIZE_USIZE {
@@ -117,9 +116,9 @@ pub fn generate_section_mesh(sections: SectionNeighbors) -> Option<ChunkSectionM
                 });
 
                 if block.is_solid() {
-                    solid_voxels_per_axis[x + z * PADDED_CHUNK_SIZE_USIZE] |= 1u64 << y;
-                    solid_voxels_per_axis[z + y * PADDED_CHUNK_SIZE_USIZE + PADDED_CHUNK_SIZE2_USIZE] |= 1u64 << x;
-                    solid_voxels_per_axis[x + y * PADDED_CHUNK_SIZE_USIZE + PADDED_CHUNK_SIZE2_USIZE * 2] |= 1u64 << z;
+                    solid_voxels_per_axis[x + z * PADDED_CHUNK_SIZE_USIZE] |= 1u32 << y;
+                    solid_voxels_per_axis[z + y * PADDED_CHUNK_SIZE_USIZE + PADDED_CHUNK_SIZE2_USIZE] |= 1u32 << x;
+                    solid_voxels_per_axis[x + y * PADDED_CHUNK_SIZE_USIZE + PADDED_CHUNK_SIZE2_USIZE * 2] |= 1u32 << z;
                 }
             }
         }
@@ -172,7 +171,7 @@ pub fn generate_section_mesh(sections: SectionNeighbors) -> Option<ChunkSectionM
         }
     }
 
-    for (&(axis, _block, axis_pos), &plane) in data.iter() {
+    for (&(axis, block, axis_pos), &plane) in data.iter() {
         let face_dir = match axis {
             0 => Direction::Down,
             1 => Direction::Up,
@@ -184,12 +183,12 @@ pub fn generate_section_mesh(sections: SectionNeighbors) -> Option<ChunkSectionM
         let quads_from_axis = greedy_mesh_binary_plane(plane);
 
         quads_from_axis.into_iter().for_each(|q| {
-            q.append_vertices(&mut vertices, &mut normals, face_dir, axis_pos as i32);
+            q.append_vertices(&mut vertices, face_dir, block.0 as u32, axis_pos as i32);
         });
     }
 
     let indices = generate_indices(vertices.len());
-    Some(ChunkSectionMesh::new(vertices, normals, indices))
+    Some(ChunkSectionMesh::new(vertices, indices))
 }
 
 //https://github.com/TanTanDev/binary_greedy_mesher_demo/blob/main/src/utils.rs#L95

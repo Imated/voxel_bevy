@@ -1,4 +1,5 @@
 use bevy::math::IVec3;
+use crate::utils::pack_vertex;
 
 // based on https://github.com/TanTanDev/binary_greedy_mesher_demo/blob/main/src/quad.rs
 #[derive(Copy, Clone)]
@@ -34,6 +35,17 @@ impl Direction {
         }
     }
 
+    pub fn normal_index(&self) -> u32 {
+        match self {
+            Direction::Left => 0u32,
+            Direction::Right => 1u32,
+            Direction::Down => 2u32,
+            Direction::Up => 3u32,
+            Direction::Forward => 4u32,
+            Direction::Back => 5u32,
+        }
+    }
+
     pub fn should_reverse(&self) -> bool {
         match self {
             Direction::Up => true,      //+1
@@ -57,9 +69,9 @@ pub struct GreedyQuad {
 impl GreedyQuad {
     pub fn append_vertices(
         &self,
-        vertices: &mut Vec<[f32; 3]>,
-        normals: &mut Vec<[f32; 3]>,
+        vertices: &mut Vec<u32>,
         face_dir: Direction,
+        block_type: u32,
         offset: i32,
     ) {
         let face_offset = match face_dir {
@@ -68,22 +80,10 @@ impl GreedyQuad {
         };
         let offset = offset + face_offset;
 
-        let v0 = face_dir
-            .world_to_sample(offset, self.x as i32, self.y as i32)
-            .as_vec3()
-            .to_array();
-        let v1 = face_dir
-            .world_to_sample(offset, (self.x + self.w) as i32, self.y as i32)
-            .as_vec3()
-            .to_array();
-        let v2 = face_dir
-            .world_to_sample(offset, (self.x + self.w) as i32, (self.y + self.h) as i32)
-            .as_vec3()
-            .to_array();
-        let v3 = face_dir
-            .world_to_sample(offset, self.x as i32, (self.y + self.h) as i32)
-            .as_vec3()
-            .to_array();
+        let v0 = pack_vertex(face_dir.world_to_sample(offset, self.x as i32, self.y as i32).as_uvec3(), face_dir.normal_index(), block_type);
+        let v1 = pack_vertex(face_dir.world_to_sample(offset, (self.x + self.w) as i32, self.y as i32).as_uvec3(), face_dir.normal_index(), block_type);
+        let v2 = pack_vertex(face_dir.world_to_sample(offset, (self.x + self.w) as i32, (self.y + self.h) as i32).as_uvec3(), face_dir.normal_index(), block_type);
+        let v3 = pack_vertex(face_dir.world_to_sample(offset, self.x as i32, (self.y + self.h) as i32).as_uvec3(), face_dir.normal_index(), block_type);
         let mut new_vertices = vec![v0, v1, v2, v3];
 
         if face_dir.should_reverse() {
@@ -92,9 +92,5 @@ impl GreedyQuad {
         }
 
         vertices.extend(new_vertices);
-
-        for _ in 0..4 {
-            normals.push(face_dir.normals());
-        }
     }
 }

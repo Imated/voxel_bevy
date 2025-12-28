@@ -11,6 +11,7 @@ use bevy::prelude::{Commands, Entity, IntoScheduleConfigs, Res, ResMut, Resource
 use bevy::tasks::{AsyncComputeTaskPool, Task, block_on, poll_once};
 use std::collections::HashMap;
 use std::sync::Arc;
+use crate::chunk_material::ATTRIBUTE_VOXEL;
 
 #[derive(Resource, Debug, Default)]
 pub struct World {
@@ -173,8 +174,8 @@ impl WorldPlugin {
                 PrimitiveTopology::TriangleList,
                 RenderAssetUsages::RENDER_WORLD,
             );
-            mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, section_mesh.vertices);
-            mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, section_mesh.normals);
+
+            mesh.insert_attribute(ATTRIBUTE_VOXEL, section_mesh.vertices);
             mesh.insert_indices(Indices::U32(section_mesh.indices));
 
             if let Some(&entity) = world.section_entities.get(&(chunk_pos, section_y)) {

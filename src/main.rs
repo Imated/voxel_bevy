@@ -9,6 +9,7 @@ mod lighting;
 mod quad;
 mod section_neighbors;
 mod world;
+mod utils;
 
 use crate::chunk_loader::{ChunkLoader, ChunkLoaderPlugin};
 use crate::chunk_material::ChunkMaterial;
