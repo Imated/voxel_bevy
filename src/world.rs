@@ -1,15 +1,14 @@
-use crate::chunk::{Chunk, ChunkPos, CHUNK_SIZE};
-use crate::chunk_material::ChunkMaterial;
+use crate::chunk::{CHUNK_SIZE, Chunk, ChunkPos};
 use crate::chunk_mesh::ChunkSectionMesh;
 use crate::greedy_chunk_render_plugin::generate_section_mesh;
 use crate::lighting::rendering::GlobalChunkMaterial;
 use crate::section_neighbors::SectionNeighbors;
-use bevy::app::{App, Plugin, PostUpdate, Startup, Update};
+use bevy::app::{App, Plugin, PostUpdate, Update};
 use bevy::asset::{Assets, RenderAssetUsages};
 use bevy::mesh::{Indices, Mesh, Mesh3d, PrimitiveTopology};
 use bevy::pbr::MeshMaterial3d;
 use bevy::prelude::{Commands, Entity, IntoScheduleConfigs, Res, ResMut, Resource, Transform};
-use bevy::tasks::{block_on, poll_once, AsyncComputeTaskPool, Task};
+use bevy::tasks::{AsyncComputeTaskPool, Task, block_on, poll_once};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -55,7 +54,6 @@ pub struct WorldPlugin;
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(World::default())
-            .add_systems(Startup, Self::setup)
             .add_systems(PostUpdate, (Self::start_data_tasks, Self::start_mesh_tasks))
             .add_systems(
                 Update,
@@ -69,13 +67,7 @@ impl Plugin for WorldPlugin {
     }
 }
 
-
-
 impl WorldPlugin {
-    pub fn setup(mut commands: Commands, mut materials: ResMut<Assets<ChunkMaterial>>) {
-
-    }
-
     pub fn unload_data(mut world: ResMut<World>) {
         let chunks_to_unload: Vec<_> = world.chunks_data_to_unload.drain(..).collect();
 
@@ -110,13 +102,12 @@ impl WorldPlugin {
         let chunks_to_load: Vec<_> = world.chunks_data_to_load.drain(..).collect();
         for chunk_pos in chunks_to_load {
             if world.loaded_chunks.contains_key(&chunk_pos)
-                || world.data_tasks.contains_key(&chunk_pos) {
+                || world.data_tasks.contains_key(&chunk_pos)
+            {
                 continue;
             }
 
-            let task = task_pool.spawn::<Chunk>(async move {
-                Self::generate_chunk_at(chunk_pos)
-            });
+            let task = task_pool.spawn::<Chunk>(async move { Self::generate_chunk_at(chunk_pos) });
             world.data_tasks.insert(chunk_pos, task);
         }
     }

@@ -9,34 +9,32 @@ mod lighting;
 mod quad;
 mod section_neighbors;
 mod world;
-mod utils;
 
-use std::f32::consts::PI;
 use crate::chunk_loader::{ChunkLoader, ChunkLoaderPlugin};
 use crate::chunk_material::ChunkMaterial;
 use crate::debug_world::DebugWorldPlugin;
 use crate::lighting::rendering::CustomRenderPlugin;
-use crate::lighting::voxel_sunlight::VoxelSunlight;
 use crate::world::WorldPlugin;
+use bevy::DefaultPlugins;
 use bevy::app::{App, PluginGroup, PostStartup};
 use bevy::camera::Camera3d;
 use bevy::color::LinearRgba;
 use bevy::color::palettes::basic::WHITE;
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
-use bevy::math::{vec3, EulerRot, Quat, Vec3};
-use bevy::pbr::wireframe::WireframeConfig;
+use bevy::light::DirectionalLight;
+use bevy::light::light_consts::lux::OVERCAST_DAY;
+use bevy::math::{Quat, vec3};
 use bevy::pbr::MaterialPlugin;
-use bevy::prelude::{default, Color, Commands, Single, Transform, Window, With};
+use bevy::pbr::wireframe::WireframeConfig;
+use bevy::prelude::Name;
+use bevy::prelude::{Color, Commands, Single, Transform, Window, With, default};
+use bevy::render::RenderPlugin;
 use bevy::render::render_resource::WgpuFeatures;
 use bevy::render::settings::{RenderCreation, WgpuSettings};
-use bevy::render::RenderPlugin;
 use bevy::window::{CursorGrabMode, CursorOptions, PresentMode, PrimaryWindow, WindowPlugin};
-use bevy::DefaultPlugins;
-use bevy::light::DirectionalLight;
-use bevy::light::light_consts::lux::{FULL_DAYLIGHT, OVERCAST_DAY};
 use bevy_flycam::{FlyCam, NoCameraPlayerPlugin};
-use bevy_inspector_egui::bevy_egui::{EguiContext, EguiPlugin};
-use bevy::prelude::Name;
+use bevy_inspector_egui::bevy_egui::EguiPlugin;
+use std::f32::consts::PI;
 
 fn main() {
     App::new()
@@ -66,13 +64,12 @@ fn main() {
             ChunkLoaderPlugin,
             DebugWorldPlugin,
             MaterialPlugin::<ChunkMaterial>::default(),
-            CustomRenderPlugin
+            CustomRenderPlugin,
         ))
         .insert_resource(WireframeConfig {
             global: true,
             default_color: WHITE.into(),
         })
-        .register_type::<VoxelSunlight>()
         .add_plugins(NoCameraPlayerPlugin)
         .add_systems(PostStartup, setup)
         .run();
@@ -104,6 +101,6 @@ pub fn setup(
             shadows_enabled: true,
             ..default()
         },
-        Name::new("Sun")
+        Name::new("Sun"),
     ));
 }

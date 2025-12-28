@@ -1,13 +1,8 @@
-use bevy::asset::Handle;
+use bevy::asset::Asset;
 use bevy::math::Vec4;
-use bevy::mesh::{Mesh, MeshVertexBufferLayout, MeshVertexBufferLayoutRef};
-use bevy::pbr::wireframe::WireframeConfig;
-use bevy::pbr::{
-    Material, MaterialExtension, MaterialPipeline, MaterialPipelineKey, MeshPipelineKey,
-};
-use bevy::prelude::{AlphaMode, Asset, Reflect, Res, TypePath};
-use bevy::render::render_resource::{AsBindGroup, PolygonMode, RenderPipelineDescriptor, ShaderType, SpecializedMeshPipelineError};
-use bevy::render::storage::ShaderStorageBuffer;
+use bevy::pbr::Material;
+use bevy::reflect::Reflect;
+use bevy::render::render_resource::{AsBindGroup, ShaderType};
 use bevy::shader::ShaderRef;
 
 #[derive(ShaderType, Clone, Default, Reflect, Debug)]
@@ -19,10 +14,7 @@ pub struct MaterialProperties {
 
 #[derive(Asset, AsBindGroup, Reflect, Debug, Clone, Default)]
 pub struct ChunkMaterial {
-    #[storage(0, read_only)]
-    pub global_light_data: Handle<ShaderStorageBuffer>,
-
-    #[uniform(1)]
+    #[uniform(0)]
     pub material_properties: MaterialProperties,
 }
 

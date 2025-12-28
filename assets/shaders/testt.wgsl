@@ -40,39 +40,14 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     return out;
 }
 
-struct GlobalLighting {
-    color_intensity: vec4<f32>,
-    ambient_color_intensity: vec4<f32>,
-    sun_direction: vec4<f32>,
-}
-
 struct MaterialProperties {
     base_color: vec4<f32>,
     emissive_color_intensity: vec4<f32>,
     metallic_roughness_tbd_tbd: vec4<f32>,
 }
 
-@group(#{MATERIAL_BIND_GROUP}) @binding(0) var<storage, read> global_lighting: GlobalLighting;
-@group(#{MATERIAL_BIND_GROUP}) @binding(1) var<uniform> material: MaterialProperties;
+@group(#{MATERIAL_BIND_GROUP}) @binding(0) var<uniform> material: MaterialProperties;
 @group(0) @binding(0) var<uniform> view: View;
-
-fn F_Schlick(F0: vec3<f32>, f90: f32, VdotH: f32) -> vec3<f32> {
-    return F0 + (vec3<f32>(f90) - F0) * pow(1.0 - VdotH, 5.0);
-}
-
-fn G_Smith(alpha: f32, NdotL: f32, NdotV: f32) -> f32 {
-    let k = alpha / 2.0;
-    let GGXL = NdotL / (NdotL * (1.0 - k) + k);
-    let GGXV = NdotV / (NdotV * (1.0 - k) + k);
-    return GGXL * GGXV;
-}
-
-fn D_GGX(alpha: f32, NdotH: f32) -> f32 {
-    let a2 = alpha * alpha;
-    let NdotH2 = NdotH * NdotH;
-    let denom = (NdotH2 * (a2 - 1.0) + 1.0);
-    return a2 / (PI * denom * denom);
-}
 
 @fragment
 fn fragment(in: VertexOutput) -> FragmentOutput {

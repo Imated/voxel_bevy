@@ -23,7 +23,9 @@ impl SectionNeighbors {
         let center = center_chunk.sections.get(section_y).unwrap().clone();
 
         let up = center_chunk.sections.get(section_y + 1).cloned();
-        let down = section_y.checked_sub(1).and_then(|y| center_chunk.sections.get(y).cloned());
+        let down = section_y
+            .checked_sub(1)
+            .and_then(|y| center_chunk.sections.get(y).cloned());
 
         let north = world_data
             .get(&ChunkPos(middle_chunk.0 + IVec2::new(0, 1)))
