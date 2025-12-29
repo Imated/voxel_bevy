@@ -86,7 +86,7 @@ pub fn setup(
     commands.spawn((
         Transform::default(),
         Camera3d::default(),
-        ChunkLoader::new(6),
+        ChunkLoader::new(2),
         FlyCam,
     ));
 

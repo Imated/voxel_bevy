@@ -18,5 +18,5 @@ opt-level = 1
 lto = true
 opt-level = 3
 codegen-units = 1
-incremental = false
+incremental = true
 debug = false

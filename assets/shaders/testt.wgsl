@@ -44,8 +44,9 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     let z = f32(vertex.vertex_data >> 10u & x_positive_bits(5u));
     let normal_index = vertex.vertex_data >> 15u & x_positive_bits(3u);
     let block_index = vertex.vertex_data >> 18u & x_positive_bits(10u);
+    let section = f32(vertex.vertex_data >> 28u & x_positive_bits(4u));
 
-    let local_position = vec4<f32>(x, y, z, 1.0);
+    let local_position = vec4<f32>(x, y + section * 16.0, z, 1.0);
     let model = get_world_from_local(vertex.instance_index);
     let world_position = model * local_position;
     let normal = normals[normal_index];

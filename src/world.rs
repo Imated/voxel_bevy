@@ -26,12 +26,13 @@ pub struct World {
     pub(crate) chunks_data_to_unload: Vec<ChunkPos>,
 
     pub(crate) chunks_mesh_to_load: Vec<ChunkPos>,
-    pub(crate) chunks_mesh_to_unload: Vec<(ChunkPos, usize)>, // pos, sections_amount
+    pub(crate) chunks_mesh_to_unload: Vec<ChunkPos>,
 
     pub(crate) data_tasks: HashMap<ChunkPos, Task<Chunk>>,
     pub(crate) mesh_tasks: HashMap<(ChunkPos, i32), Task<Option<ChunkSectionMesh>>>,
 
-    section_entities: HashMap<(ChunkPos, i32), Entity>,
+    chunk_entities: HashMap<ChunkPos, Entity>,
+    chunk_sections: HashMap<ChunkPos, HashMap<i32, Option<ChunkSectionMesh>>>,
 }
 
 impl World {
@@ -79,10 +80,8 @@ impl WorldPlugin {
 
         for chunk_pos in chunks_to_unload {
             let chunk = world.loaded_chunks.remove(&chunk_pos);
-            if let Some(chunk) = chunk {
-                world
-                    .chunks_mesh_to_unload
-                    .push((chunk_pos, chunk.sections.len()));
+            if let Some(_chunk) = chunk {
+                world.chunks_mesh_to_unload.push(chunk_pos);
             }
         }
     }
@@ -90,15 +89,13 @@ impl WorldPlugin {
     pub fn unload_meshes(mut commands: Commands, mut world: ResMut<World>) {
         let chunks_to_unload: Vec<_> = world.chunks_mesh_to_unload.drain(..).collect();
 
-        for (chunk_pos, sections_len) in chunks_to_unload {
-            for i in 0..sections_len {
-                let Some(chunk_id) = world.section_entities.remove(&(chunk_pos, i as i32)) else {
-                    continue;
-                };
+        for (chunk_pos) in chunks_to_unload {
+            let Some(chunk_id) = world.chunk_entities.remove(&chunk_pos) else {
+                continue;
+            };
 
-                if let Ok(mut entity) = commands.get_entity(chunk_id) {
-                    entity.despawn();
-                }
+            if let Ok(mut entity) = commands.get_entity(chunk_id) {
+                entity.despawn();
             }
         }
     }
@@ -145,7 +142,7 @@ impl WorldPlugin {
                 let section = SectionNeighbors::new(&world.loaded_chunks, chunk_pos, section_y);
 
                 let task = task_pool.spawn::<Option<ChunkSectionMesh>>(async move {
-                    generate_section_mesh(section)
+                    generate_section_mesh(section, section_y as i32)
                 });
                 world.mesh_tasks.insert((chunk_pos, section_y as i32), task);
             }
@@ -158,33 +155,61 @@ impl WorldPlugin {
         mut meshes: ResMut<Assets<Mesh>>,
         material: Res<GlobalChunkMaterial>,
     ) {
-        let mut completed_sections = vec![];
+        let mut completed = vec![];
 
         world.mesh_tasks.retain(|&(chunk_pos, section_y), task| {
-            let status = block_on(poll_once(task));
-            let retain = status.is_none();
-            if let Some(section) = status {
-                if section.is_none() {
-                    // section is empty!
-                    return false;
-                }
-                let section_mesh = section.unwrap();
-                completed_sections.push((chunk_pos, section_y, section_mesh));
+            if let Some(section) = block_on(poll_once(task)) {
+                completed.push((chunk_pos, section_y, section));
+                false
+            } else {
+                true
             }
-            retain
         });
 
-        for (chunk_pos, section_y, section_mesh) in completed_sections {
+        for (chunk_pos, section_y, section) in completed {
+            world.chunk_sections.entry(chunk_pos).or_default().insert(section_y, section);
+        }
+
+        let chunks_to_spawn: Vec<_> = world.chunk_sections
+            .iter()
+            .filter(|(chunk_pos, sections)| {
+                let expected = world.loaded_chunks[chunk_pos].sections.len();
+                sections.len() == expected
+            })
+            .map(|(pos, _)| *pos)
+            .collect();
+
+        for chunk_pos in chunks_to_spawn {
+            let sections = world.chunk_sections.remove(&chunk_pos).unwrap();
+
+            let mut all_vertices = Vec::new();
+            let mut all_indices = Vec::new();
+            let mut vertex_offset = 0u32;
+
+            for (_section_y, section) in sections.iter() {
+                let Some(section) = section.as_ref() else {
+                    continue;
+                };
+
+                all_vertices.extend_from_slice(&section.vertices);
+                all_indices.extend(section.indices.iter().map(|&i| i + vertex_offset));
+                vertex_offset += section.vertices.len() as u32;
+            }
+
+            if all_vertices.is_empty() {
+                continue;
+            }
+
             let mut mesh = Mesh::new(
                 PrimitiveTopology::TriangleList,
                 RenderAssetUsages::RENDER_WORLD,
             );
 
-            mesh.insert_attribute(ATTRIBUTE_VOXEL, section_mesh.vertices);
-            mesh.insert_indices(Indices::U32(section_mesh.indices));
+            mesh.insert_attribute(ATTRIBUTE_VOXEL, all_vertices);
+            mesh.insert_indices(Indices::U32(all_indices));
 
-            if let Some(&entity) = world.section_entities.get(&(chunk_pos, section_y)) {
-                commands.entity(entity).despawn();
+            if let Some(old_entity) = world.chunk_entities.remove(&chunk_pos) {
+                commands.entity(old_entity).despawn();
             }
 
             let entity = commands
@@ -193,15 +218,15 @@ impl WorldPlugin {
                     MeshMaterial3d(material.0.clone()),
                     Transform::from_xyz(
                         chunk_pos.0.x as f32 * CHUNK_SIZE as f32,
-                        section_y as f32 * CHUNK_SIZE as f32,
+                        0.0,
                         chunk_pos.0.y as f32 * CHUNK_SIZE as f32,
                     ),
                     chunk_pos,
-                    Aabb::from_min_max(Vec3::ZERO, Vec3::splat(CHUNK_SIZE as f32))
+                    Aabb::from_min_max(Vec3::ZERO, Vec3::new(CHUNK_SIZE as f32, CHUNK_SIZE as f32 * sections.len() as f32, CHUNK_SIZE as f32))
                 ))
                 .id();
 
-            world.section_entities.insert((chunk_pos, section_y), entity);
+            world.chunk_entities.insert(chunk_pos, entity);
         }
     }
 

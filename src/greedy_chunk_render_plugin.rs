@@ -63,7 +63,7 @@ fn get_block_at_section(section: &Option<Arc<RwLock<ChunkSection>>>, x: i32, y: 
     up_section.get_by_xyz(x, y, z).unwrap()
 }
 
-pub fn generate_section_mesh(sections: SectionNeighbors) -> Option<ChunkSectionMesh> {
+pub fn generate_section_mesh(sections: SectionNeighbors, section_y: i32) -> Option<ChunkSectionMesh> {
     let section_data = sections.center.read().unwrap();
     if section_data.is_empty() {
         return None;
@@ -183,7 +183,7 @@ pub fn generate_section_mesh(sections: SectionNeighbors) -> Option<ChunkSectionM
         let quads_from_axis = greedy_mesh_binary_plane(plane);
 
         quads_from_axis.into_iter().for_each(|q| {
-            q.append_vertices(&mut vertices, face_dir, block.0 as u32, axis_pos as i32);
+            q.append_vertices(&mut vertices, face_dir, block.0 as u32, axis_pos as i32, section_y);
         });
     }
 
