@@ -1,22 +1,20 @@
-use crate::chunk::{CHUNK_SIZE, Chunk, ChunkPos};
-use crate::chunk_mesh::ChunkSectionMesh;
-use crate::greedy_chunk_render_plugin::generate_section_mesh;
-use crate::lighting::rendering::GlobalChunkMaterial;
-use crate::section_neighbors::SectionNeighbors;
+use crate::world::chunks::section_neighbors::SectionNeighbors;
 use bevy::app::{App, Plugin, PostUpdate, Update};
 use bevy::asset::{Assets, RenderAssetUsages};
-use bevy::mesh::{Indices, Mesh, Mesh3d, PrimitiveTopology};
-use bevy::pbr::MeshMaterial3d;
-use bevy::prelude::{Commands, Entity, IntoScheduleConfigs, Query, Res, ResMut, Resource, Transform, ViewVisibility, With};
-use bevy::tasks::{AsyncComputeTaskPool, Task, block_on, poll_once};
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Duration;
-use bevy::camera::Camera;
 use bevy::camera::primitives::Aabb;
 use bevy::math::Vec3;
-use bevy::time::common_conditions::on_timer;
-use crate::chunk_material::ATTRIBUTE_VOXEL;
+use bevy::mesh::{Indices, Mesh, Mesh3d, PrimitiveTopology};
+use bevy::pbr::MeshMaterial3d;
+use bevy::prelude::{Commands, Entity, IntoScheduleConfigs, Res, ResMut, Resource, Transform};
+use bevy::tasks::{block_on, poll_once, AsyncComputeTaskPool, Task};
+use std::collections::HashMap;
+use std::sync::Arc;
+use crate::constants::{ATTRIBUTE_VOXEL, CHUNK_SIZE};
+use crate::rendering::greedy_chunk_render_plugin::generate_section_mesh;
+use crate::rendering::rendering::GlobalChunkMaterial;
+use crate::world::chunks::chunk::Chunk;
+use crate::world::chunks::chunk_mesh::ChunkSectionMesh;
+use crate::world::chunks::chunk_pos::ChunkPos;
 
 #[derive(Resource, Debug, Default)]
 pub struct World {
@@ -89,7 +87,7 @@ impl WorldPlugin {
     pub fn unload_meshes(mut commands: Commands, mut world: ResMut<World>) {
         let chunks_to_unload: Vec<_> = world.chunks_mesh_to_unload.drain(..).collect();
 
-        for (chunk_pos) in chunks_to_unload {
+        for chunk_pos in chunks_to_unload {
             let Some(chunk_id) = world.chunk_entities.remove(&chunk_pos) else {
                 continue;
             };

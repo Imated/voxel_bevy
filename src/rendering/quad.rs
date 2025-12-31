@@ -1,6 +1,5 @@
-use bevy::math::IVec3;
-use crate::chunk::CHUNK_SIZE;
 use crate::utils::pack_vertex;
+use bevy::math::IVec3;
 
 // based on https://github.com/TanTanDev/binary_greedy_mesher_demo/blob/main/src/quad.rs
 #[derive(Copy, Clone)]
@@ -22,17 +21,6 @@ impl Direction {
             Direction::Right => IVec3::new(offset, y, x),
             Direction::Forward => IVec3::new(x, y, offset),
             Direction::Back => IVec3::new(x, y, offset),
-        }
-    }
-
-    pub fn normals(&self) -> [f32; 3] {
-        match self {
-            Direction::Up => [0.0, 1.0, 0.0],
-            Direction::Down => [0.0, -1.0, 0.0],
-            Direction::Left => [-1.0, 0.0, 0.0],
-            Direction::Right => [1.0, 0.0, 0.0],
-            Direction::Forward => [0.0, 0.0, -1.0],
-            Direction::Back => [0.0, 0.0, 1.0],
         }
     }
 

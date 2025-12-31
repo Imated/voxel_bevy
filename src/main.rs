@@ -1,21 +1,9 @@
 mod block;
-mod chunk;
-mod chunk_loader;
-mod chunk_material;
-mod chunk_mesh;
-mod debug_world;
-mod greedy_chunk_render_plugin;
-mod lighting;
-mod quad;
-mod section_neighbors;
 mod world;
 mod utils;
+mod constants;
+mod rendering;
 
-use crate::chunk_loader::{ChunkLoader, ChunkLoaderPlugin};
-use crate::chunk_material::ChunkMaterial;
-use crate::debug_world::DebugWorldPlugin;
-use crate::lighting::rendering::CustomRenderPlugin;
-use crate::world::WorldPlugin;
 use bevy::DefaultPlugins;
 use bevy::app::{App, PluginGroup, PostStartup};
 use bevy::camera::Camera3d;
@@ -24,18 +12,21 @@ use bevy::color::palettes::basic::WHITE;
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::light::DirectionalLight;
 use bevy::light::light_consts::lux::OVERCAST_DAY;
-use bevy::math::{Quat, vec3};
+use bevy::math::{vec3, Quat};
 use bevy::pbr::MaterialPlugin;
 use bevy::pbr::wireframe::WireframeConfig;
-use bevy::prelude::{Msaa, Name};
-use bevy::prelude::{Color, Commands, Single, Transform, Window, With, default};
+use bevy::prelude::Name;
+use bevy::prelude::{default, Color, Commands, Single, Transform, Window, With};
 use bevy::render::RenderPlugin;
 use bevy::render::render_resource::WgpuFeatures;
 use bevy::render::settings::{RenderCreation, WgpuSettings};
 use bevy::window::{CursorGrabMode, CursorOptions, PresentMode, PrimaryWindow, WindowPlugin};
 use bevy_flycam::{FlyCam, NoCameraPlayerPlugin};
-use bevy_inspector_egui::bevy_egui::EguiPlugin;
 use std::f32::consts::PI;
+use crate::rendering::rendering::CustomRenderPlugin;
+use crate::world::chunks::chunk_loader::{ChunkLoader, ChunkLoaderPlugin};
+use crate::world::chunks::chunk_material::ChunkMaterial;
+use crate::world::world::WorldPlugin;
 
 fn main() {
     App::new()
@@ -86,7 +77,7 @@ pub fn setup(
     commands.spawn((
         Transform::default(),
         Camera3d::default(),
-        ChunkLoader::new(2),
+        ChunkLoader::new(32),
         FlyCam,
     ));
 

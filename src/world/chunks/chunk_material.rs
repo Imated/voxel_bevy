@@ -1,6 +1,7 @@
+use crate::constants::ATTRIBUTE_VOXEL;
 use bevy::asset::Asset;
 use bevy::math::Vec4;
-use bevy::mesh::{MeshVertexAttribute, MeshVertexBufferLayoutRef, VertexFormat};
+use bevy::mesh::MeshVertexBufferLayoutRef;
 use bevy::pbr::{Material, MaterialPipeline, MaterialPipelineKey};
 use bevy::reflect::Reflect;
 use bevy::render::render_resource::{AsBindGroup, RenderPipelineDescriptor, ShaderType, SpecializedMeshPipelineError};
@@ -12,8 +13,6 @@ pub struct MaterialProperties {
     pub emissive_color_intensity: Vec4,
     pub metallic_roughness_tbd_tbd: Vec4,
 }
-
-pub const ATTRIBUTE_VOXEL: MeshVertexAttribute = MeshVertexAttribute::new("Voxel", 988540919, VertexFormat::Uint32);
 
 #[derive(Asset, AsBindGroup, Reflect, Debug, Clone, Default)]
 pub struct ChunkMaterial {

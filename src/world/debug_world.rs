@@ -1,4 +1,3 @@
-use crate::world::World;
 use bevy::app::{App, Plugin, Update};
 use bevy::prelude::{IntoScheduleConfigs, ReflectResource, Time};
 use bevy::prelude::{Reflect, Res, ResMut, Resource};
@@ -6,6 +5,7 @@ use bevy::time::common_conditions::on_timer;
 use bevy_inspector_egui::prelude::*;
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 use std::time::Duration;
+use crate::world::world::World;
 
 #[derive(Resource, Default, Reflect, InspectorOptions)]
 #[reflect(Resource, InspectorOptions)]
