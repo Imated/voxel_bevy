@@ -1,9 +1,13 @@
 mod block;
-mod world;
-mod utils;
 mod constants;
 mod rendering;
+pub mod utils;
+mod world;
 
+use crate::rendering::rendering::CustomRenderPlugin;
+use crate::world::chunks::chunk_loader::{ChunkLoader, ChunkLoaderPlugin};
+use crate::world::chunks::chunk_material::ChunkMaterial;
+use crate::world::world::WorldPlugin;
 use bevy::DefaultPlugins;
 use bevy::app::{App, PluginGroup, PostStartup};
 use bevy::camera::Camera3d;
@@ -12,21 +16,17 @@ use bevy::color::palettes::basic::WHITE;
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::light::DirectionalLight;
 use bevy::light::light_consts::lux::OVERCAST_DAY;
-use bevy::math::{vec3, Quat};
+use bevy::math::{Quat, vec3};
 use bevy::pbr::MaterialPlugin;
 use bevy::pbr::wireframe::WireframeConfig;
 use bevy::prelude::Name;
-use bevy::prelude::{default, Color, Commands, Single, Transform, Window, With};
+use bevy::prelude::{Color, Commands, Single, Transform, Window, With, default};
 use bevy::render::RenderPlugin;
 use bevy::render::render_resource::WgpuFeatures;
 use bevy::render::settings::{RenderCreation, WgpuSettings};
 use bevy::window::{CursorGrabMode, CursorOptions, PresentMode, PrimaryWindow, WindowPlugin};
 use bevy_flycam::{FlyCam, NoCameraPlayerPlugin};
 use std::f32::consts::PI;
-use crate::rendering::rendering::CustomRenderPlugin;
-use crate::world::chunks::chunk_loader::{ChunkLoader, ChunkLoaderPlugin};
-use crate::world::chunks::chunk_material::ChunkMaterial;
-use crate::world::world::WorldPlugin;
 
 fn main() {
     App::new()

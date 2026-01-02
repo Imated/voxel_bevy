@@ -1,4 +1,4 @@
-﻿use crate::block::Block;
+use crate::block::Block;
 use crate::constants::{CHUNK_SIZE, CHUNK_SIZE2, CHUNK_SIZE3};
 
 #[derive(Default, Debug, Ord, PartialOrd, Eq, PartialEq)]

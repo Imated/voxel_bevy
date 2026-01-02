@@ -7,6 +7,9 @@ edition = "2024"
 bevy = { version = "0.17.3", default-features = false, features = ["bevy_render", "bevy_image", "bevy_camera", "bevy_window", "bevy_winit", "png", "bevy_pbr", "debug", "tonemapping_luts", "zstd_rust", "bevy_light", "bevy_post_process", "bevy_log", "bevy_picking"] }
 bevy-inspector-egui = "0.35.0"
 bevy_flycam = "0.17.0"
+noise = "0.9.0"
+tinyvec = "1.10.0"
+fxhash = "0.2.1"
 
 [profile.dev.package."*"]
 opt-level = 3

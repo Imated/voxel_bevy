@@ -1,9 +1,9 @@
-use bevy::math::IVec2;
-use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
 use crate::world::chunks::chunk::Chunk;
 use crate::world::chunks::chunk_pos::ChunkPos;
 use crate::world::chunks::chunk_section::ChunkSection;
+use bevy::math::IVec2;
+use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
 
 pub struct SectionNeighbors {
     pub center: Arc<RwLock<ChunkSection>>,

@@ -1,8 +1,8 @@
+use crate::world::chunks::chunk_material::{ChunkMaterial, MaterialProperties};
 use bevy::app::{App, Startup};
 use bevy::asset::{Assets, Handle};
 use bevy::math::{Vec4, vec4};
 use bevy::prelude::{Commands, Plugin, ResMut, Resource};
-use crate::world::chunks::chunk_material::{ChunkMaterial, MaterialProperties};
 
 pub struct CustomRenderPlugin;
 

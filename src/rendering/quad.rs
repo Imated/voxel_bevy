@@ -62,7 +62,7 @@ impl GreedyQuad {
         face_dir: Direction,
         block_type: u32,
         offset: i32,
-        section_y: i32
+        section_y: i32,
     ) {
         let face_offset = match face_dir {
             Direction::Up | Direction::Right | Direction::Back => 1i32,
@@ -72,10 +72,38 @@ impl GreedyQuad {
 
         let y_offset = section_y as u32;
 
-        let v0 = pack_vertex(face_dir.world_to_sample(offset, self.x as i32, self.y as i32).as_uvec3(), face_dir.normal_index(), block_type, y_offset);
-        let v1 = pack_vertex(face_dir.world_to_sample(offset, (self.x + self.w) as i32, self.y as i32).as_uvec3(), face_dir.normal_index(), block_type, y_offset);
-        let v2 = pack_vertex(face_dir.world_to_sample(offset, (self.x + self.w) as i32, (self.y + self.h) as i32).as_uvec3(), face_dir.normal_index(), block_type, y_offset);
-        let v3 = pack_vertex(face_dir.world_to_sample(offset, self.x as i32, (self.y + self.h) as i32).as_uvec3(), face_dir.normal_index(), block_type, y_offset);
+        let v0 = pack_vertex(
+            face_dir
+                .world_to_sample(offset, self.x as i32, self.y as i32)
+                .as_uvec3(),
+            face_dir.normal_index(),
+            block_type,
+            y_offset,
+        );
+        let v1 = pack_vertex(
+            face_dir
+                .world_to_sample(offset, (self.x + self.w) as i32, self.y as i32)
+                .as_uvec3(),
+            face_dir.normal_index(),
+            block_type,
+            y_offset,
+        );
+        let v2 = pack_vertex(
+            face_dir
+                .world_to_sample(offset, (self.x + self.w) as i32, (self.y + self.h) as i32)
+                .as_uvec3(),
+            face_dir.normal_index(),
+            block_type,
+            y_offset,
+        );
+        let v3 = pack_vertex(
+            face_dir
+                .world_to_sample(offset, self.x as i32, (self.y + self.h) as i32)
+                .as_uvec3(),
+            face_dir.normal_index(),
+            block_type,
+            y_offset,
+        );
         let mut new_vertices = vec![v0, v1, v2, v3];
 
         if face_dir.should_reverse() {

@@ -1,8 +1,8 @@
 use crate::block::Block;
 use crate::constants::{CHUNK_SIZE, CHUNK_SIZE2};
+use crate::world::chunks::chunk_section::ChunkSection;
 use bevy::prelude::IVec3;
 use std::sync::{Arc, RwLock};
-use crate::world::chunks::chunk_section::ChunkSection;
 
 #[derive(Default, Debug)]
 pub struct Chunk {

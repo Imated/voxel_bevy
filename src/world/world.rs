@@ -1,3 +1,9 @@
+use crate::constants::{ATTRIBUTE_VOXEL, CHUNK_SIZE};
+use crate::rendering::greedy_chunk_render_plugin::generate_section_mesh;
+use crate::rendering::rendering::GlobalChunkMaterial;
+use crate::world::chunks::chunk::Chunk;
+use crate::world::chunks::chunk_mesh::ChunkSectionMesh;
+use crate::world::chunks::chunk_pos::ChunkPos;
 use crate::world::chunks::section_neighbors::SectionNeighbors;
 use bevy::app::{App, Plugin, PostUpdate, Update};
 use bevy::asset::{Assets, RenderAssetUsages};
@@ -6,15 +12,9 @@ use bevy::math::Vec3;
 use bevy::mesh::{Indices, Mesh, Mesh3d, PrimitiveTopology};
 use bevy::pbr::MeshMaterial3d;
 use bevy::prelude::{Commands, Entity, IntoScheduleConfigs, Res, ResMut, Resource, Transform};
-use bevy::tasks::{block_on, poll_once, AsyncComputeTaskPool, Task};
+use bevy::tasks::{AsyncComputeTaskPool, Task, block_on, poll_once};
 use std::collections::HashMap;
 use std::sync::Arc;
-use crate::constants::{ATTRIBUTE_VOXEL, CHUNK_SIZE};
-use crate::rendering::greedy_chunk_render_plugin::generate_section_mesh;
-use crate::rendering::rendering::GlobalChunkMaterial;
-use crate::world::chunks::chunk::Chunk;
-use crate::world::chunks::chunk_mesh::ChunkSectionMesh;
-use crate::world::chunks::chunk_pos::ChunkPos;
 
 #[derive(Resource, Debug, Default)]
 pub struct World {
@@ -165,10 +165,15 @@ impl WorldPlugin {
         });
 
         for (chunk_pos, section_y, section) in completed {
-            world.chunk_sections.entry(chunk_pos).or_default().insert(section_y, section);
+            world
+                .chunk_sections
+                .entry(chunk_pos)
+                .or_default()
+                .insert(section_y, section);
         }
 
-        let chunks_to_spawn: Vec<_> = world.chunk_sections
+        let chunks_to_spawn: Vec<_> = world
+            .chunk_sections
             .iter()
             .filter(|(chunk_pos, sections)| {
                 let expected = world.loaded_chunks[chunk_pos].sections.len();
@@ -220,7 +225,14 @@ impl WorldPlugin {
                         chunk_pos.0.y as f32 * CHUNK_SIZE as f32,
                     ),
                     chunk_pos,
-                    Aabb::from_min_max(Vec3::ZERO, Vec3::new(CHUNK_SIZE as f32, CHUNK_SIZE as f32 * sections.len() as f32, CHUNK_SIZE as f32))
+                    Aabb::from_min_max(
+                        Vec3::ZERO,
+                        Vec3::new(
+                            CHUNK_SIZE as f32,
+                            CHUNK_SIZE as f32 * sections.len() as f32,
+                            CHUNK_SIZE as f32,
+                        ),
+                    ),
                 ))
                 .id();
 
