@@ -1,3 +1,5 @@
+use crate::constants::{MAX_DATA_TASKS, MAX_MESH_TASKS};
+use bevy::prelude::info;
 use crate::constants::{ATTRIBUTE_VOXEL, CHUNK_SIZE};
 use crate::rendering::greedy_chunk_render_plugin::generate_section_mesh;
 use crate::rendering::rendering::GlobalChunkMaterial;
@@ -66,8 +68,7 @@ impl Plugin for WorldPlugin {
                     (Self::join_data_tasks, Self::join_mesh_tanks),
                     Self::unload_meshes,
                     Self::unload_data,
-                )
-                    .chain(),
+                ).chain(),
             );
     }
 }
@@ -99,8 +100,13 @@ impl WorldPlugin {
     }
 
     fn start_data_tasks(mut world: ResMut<World>) {
+        if world.data_tasks.len() > MAX_DATA_TASKS {
+            return;
+        }
+
         let task_pool = AsyncComputeTaskPool::get();
-        let chunks_to_load: Vec<_> = world.chunks_data_to_load.drain(..).collect();
+        let count = (MAX_DATA_TASKS - world.data_tasks.len()).min(world.chunks_data_to_load.len());
+        let chunks_to_load: Vec<_> = world.chunks_data_to_load.drain(..count).collect();
         for chunk_pos in chunks_to_load {
             if world.loaded_chunks.contains_key(&chunk_pos)
                 || world.data_tasks.contains_key(&chunk_pos)
@@ -108,7 +114,9 @@ impl WorldPlugin {
                 continue;
             }
 
-            let task = task_pool.spawn::<Chunk>(async move { Self::generate_chunk_at(chunk_pos) });
+            let task = task_pool.spawn::<Chunk>(async move {
+                Self::generate_chunk_at(chunk_pos)
+            });
             world.data_tasks.insert(chunk_pos, task);
         }
     }
@@ -132,8 +140,13 @@ impl WorldPlugin {
     }
 
     fn start_mesh_tasks(mut world: ResMut<World>) {
+        if world.mesh_tasks.len() > MAX_MESH_TASKS {
+            return;
+        }
+
         let task_pool = AsyncComputeTaskPool::get();
-        let chunks_to_mesh: Vec<_> = world.chunks_mesh_to_load.drain(..).collect();
+        let count = (MAX_MESH_TASKS - world.mesh_tasks.len()).min(world.chunks_mesh_to_load.len());
+        let chunks_to_mesh: Vec<_> = world.chunks_mesh_to_load.drain(..count).collect();
         for chunk_pos in chunks_to_mesh {
             let chunk = Arc::clone(&world.loaded_chunks[&chunk_pos]);
             for section_y in 0..chunk.sections.len() {

@@ -13,7 +13,7 @@ use bevy::app::{App, PluginGroup, PostStartup};
 use bevy::camera::Camera3d;
 use bevy::color::LinearRgba;
 use bevy::color::palettes::basic::WHITE;
-use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
+use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin, SystemInformationDiagnosticsPlugin};
 use bevy::light::DirectionalLight;
 use bevy::light::light_consts::lux::OVERCAST_DAY;
 use bevy::math::{Quat, vec3};
@@ -51,6 +51,7 @@ fn main() {
             //WireframePlugin::default(),
             FrameTimeDiagnosticsPlugin::default(),
             LogDiagnosticsPlugin::default(),
+            SystemInformationDiagnosticsPlugin::default(),
             //EguiPlugin::default(),
             WorldPlugin,
             ChunkLoaderPlugin,
@@ -77,7 +78,7 @@ pub fn setup(
     commands.spawn((
         Transform::default(),
         Camera3d::default(),
-        ChunkLoader::new(32),
+        ChunkLoader::new(96),
         FlyCam,
     ));
 
