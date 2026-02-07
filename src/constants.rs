@@ -10,7 +10,6 @@ pub const PADDED_CHUNK_SIZE2_USIZE: usize = 324;
 pub const PADDED_CHUNK_SIZE3: i32 = 5832;
 pub const PADDED_CHUNK_SIZE3_USIZE: usize = 5832;
 
-
 pub const MAX_MESH_TASKS: usize = 32;
 pub const MAX_DATA_TASKS: usize = 64;
 

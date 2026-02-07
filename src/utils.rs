@@ -1,5 +1,5 @@
-use std::hash::{Hash, Hasher};
 use bevy::math::UVec3;
+use std::hash::{Hash, Hasher};
 use std::ops::{Range, Sub};
 
 pub fn pack_vertex(position: UVec3, normal: u32, block_type: u32, section_y: u32) -> u32 {

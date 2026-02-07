@@ -1,6 +1,5 @@
-use crate::constants::{MAX_DATA_TASKS, MAX_MESH_TASKS};
-use bevy::prelude::info;
 use crate::constants::{ATTRIBUTE_VOXEL, CHUNK_SIZE};
+use crate::constants::{MAX_DATA_TASKS, MAX_MESH_TASKS};
 use crate::rendering::greedy_chunk_render_plugin::generate_section_mesh;
 use crate::rendering::rendering::GlobalChunkMaterial;
 use crate::world::chunks::chunk::Chunk;
@@ -10,6 +9,7 @@ use crate::world::chunks::section_neighbors::SectionNeighbors;
 use bevy::app::{App, Plugin, PostUpdate, Update};
 use bevy::asset::{Assets, RenderAssetUsages};
 use bevy::camera::primitives::Aabb;
+use bevy::log::warn;
 use bevy::math::Vec3;
 use bevy::mesh::{Indices, Mesh, Mesh3d, PrimitiveTopology};
 use bevy::pbr::MeshMaterial3d;
@@ -114,9 +114,7 @@ impl WorldPlugin {
                 continue;
             }
 
-            let task = task_pool.spawn::<Chunk>(async move {
-                Self::generate_chunk_at(chunk_pos)
-            });
+            let task = task_pool.spawn::<Chunk>(async move { Self::generate_chunk_at(chunk_pos) });
             world.data_tasks.insert(chunk_pos, task);
         }
     }
@@ -148,7 +146,10 @@ impl WorldPlugin {
         let count = (MAX_MESH_TASKS - world.mesh_tasks.len()).min(world.chunks_mesh_to_load.len());
         let chunks_to_mesh: Vec<_> = world.chunks_mesh_to_load.drain(..count).collect();
         for chunk_pos in chunks_to_mesh {
-            let chunk = Arc::clone(&world.loaded_chunks[&chunk_pos]);
+            let Some(chunk) = world.loaded_chunks.get(&chunk_pos) else {
+                continue; // chunk got unloaded
+            };
+            let chunk = Arc::clone(&chunk);
             for section_y in 0..chunk.sections.len() {
                 let section = SectionNeighbors::new(&world.loaded_chunks, chunk_pos, section_y);
 
@@ -196,7 +197,13 @@ impl WorldPlugin {
             .collect();
 
         for chunk_pos in chunks_to_spawn {
-            let sections = world.chunk_sections.remove(&chunk_pos).unwrap();
+            let Some(sections) = world.chunk_sections.remove(&chunk_pos) else {
+                warn!(
+                    "Couldn't find chunk sections for chunk at {:?}? This shouldn't happen..",
+                    chunk_pos
+                );
+                continue;
+            };
 
             let mut all_vertices = Vec::new();
             let mut all_indices = Vec::new();

@@ -6,9 +6,6 @@ pub struct ChunkSectionMesh {
 
 impl ChunkSectionMesh {
     pub fn new(vertices: Vec<u32>, indices: Vec<u32>) -> Self {
-        Self {
-            vertices,
-            indices,
-        }
+        Self { vertices, indices }
     }
 }

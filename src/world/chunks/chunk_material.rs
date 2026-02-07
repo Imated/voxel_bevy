@@ -4,7 +4,9 @@ use bevy::math::Vec4;
 use bevy::mesh::MeshVertexBufferLayoutRef;
 use bevy::pbr::{Material, MaterialPipeline, MaterialPipelineKey};
 use bevy::reflect::Reflect;
-use bevy::render::render_resource::{AsBindGroup, RenderPipelineDescriptor, ShaderType, SpecializedMeshPipelineError};
+use bevy::render::render_resource::{
+    AsBindGroup, RenderPipelineDescriptor, ShaderType, SpecializedMeshPipelineError,
+};
 use bevy::shader::ShaderRef;
 
 #[derive(ShaderType, Clone, Default, Reflect, Debug)]
@@ -35,7 +37,9 @@ impl Material for ChunkMaterial {
         layout: &MeshVertexBufferLayoutRef,
         _key: MaterialPipelineKey<Self>,
     ) -> Result<(), SpecializedMeshPipelineError> {
-        let vertex_layout = layout.0.get_layout(&[ATTRIBUTE_VOXEL.at_shader_location(0)])?;
+        let vertex_layout = layout
+            .0
+            .get_layout(&[ATTRIBUTE_VOXEL.at_shader_location(0)])?;
         descriptor.vertex.buffers = vec![vertex_layout];
         Ok(())
     }

@@ -45,7 +45,7 @@ impl ChunkLoaderPlugin {
             }
             loader.previous_chunk = current_chunk;
 
-            let chunks_to_load: HashSet<ChunkPos> =
+            let chunks_to_load_set: HashSet<ChunkPos> =
                 get_chunks_in_radius(ChunkPos(current_chunk.xz()), loader.distance)
                     .iter()
                     .copied()
@@ -56,11 +56,13 @@ impl ChunkLoaderPlugin {
                     .copied()
                     .collect();
 
-            for &pos in chunks_to_load.difference(&chunks_to_unload) {
+            let mut chunks_to_load = chunks_to_load_set.difference(&chunks_to_unload).collect::<Vec<_>>();
+            chunks_to_load.sort_by_key(|pos| pos.0.distance_squared(current_chunk.xz()));
+            for &pos in chunks_to_load {
                 world.load_chunk(pos);
             }
 
-            for &pos in chunks_to_unload.difference(&chunks_to_load) {
+            for &pos in chunks_to_unload.difference(&chunks_to_load_set) {
                 world.unload_chunk(pos);
             }
         }

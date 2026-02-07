@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+#![deny(unreachable_patterns, unused_must_use, unsafe_code)]
+
 mod block;
 mod constants;
 mod rendering;
@@ -13,7 +16,9 @@ use bevy::app::{App, PluginGroup, PostStartup};
 use bevy::camera::Camera3d;
 use bevy::color::LinearRgba;
 use bevy::color::palettes::basic::WHITE;
-use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin, SystemInformationDiagnosticsPlugin};
+use bevy::diagnostic::{
+    FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin, SystemInformationDiagnosticsPlugin,
+};
 use bevy::light::DirectionalLight;
 use bevy::light::light_consts::lux::OVERCAST_DAY;
 use bevy::math::{Quat, vec3};
@@ -25,8 +30,10 @@ use bevy::render::RenderPlugin;
 use bevy::render::render_resource::WgpuFeatures;
 use bevy::render::settings::{RenderCreation, WgpuSettings};
 use bevy::window::{CursorGrabMode, CursorOptions, PresentMode, PrimaryWindow, WindowPlugin};
-use bevy_flycam::{FlyCam, NoCameraPlayerPlugin};
+use bevy_flycam::{FlyCam, MovementSettings, NoCameraPlayerPlugin};
 use std::f32::consts::PI;
+use crate::rendering::skybox_material::SkyboxMaterial;
+use crate::rendering::skybox_plugin::{Skybox, SkyboxPlugin};
 
 fn main() {
     App::new()
@@ -57,11 +64,17 @@ fn main() {
             ChunkLoaderPlugin,
             //DebugWorldPlugin,
             MaterialPlugin::<ChunkMaterial>::default(),
+            MaterialPlugin::<SkyboxMaterial>::default(),
             CustomRenderPlugin,
+            SkyboxPlugin,
         ))
         .insert_resource(WireframeConfig {
             global: true,
             default_color: WHITE.into(),
+        })
+        .insert_resource(MovementSettings {
+            sensitivity: 0.00006,
+            speed: 24.0,
         })
         .add_plugins(NoCameraPlayerPlugin)
         .add_systems(PostStartup, setup)
@@ -76,10 +89,11 @@ pub fn setup(
     primary_cursor_options.visible = true;
 
     commands.spawn((
-        Transform::default(),
+        Transform::from_xyz(0.0, 48.0, 0.0),
         Camera3d::default(),
         ChunkLoader::new(96),
         FlyCam,
+        Skybox,
     ));
 
     commands.spawn((
