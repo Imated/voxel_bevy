@@ -74,7 +74,7 @@ fn main() {
         })
         .insert_resource(MovementSettings {
             sensitivity: 0.00006,
-            speed: 24.0,
+            speed: 128.0,
         })
         .add_plugins(NoCameraPlayerPlugin)
         .add_systems(PostStartup, setup)
@@ -91,7 +91,7 @@ pub fn setup(
     commands.spawn((
         Transform::from_xyz(0.0, 48.0, 0.0),
         Camera3d::default(),
-        ChunkLoader::new(96),
+        ChunkLoader::new(32),
         FlyCam,
         Skybox,
     ));

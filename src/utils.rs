@@ -11,6 +11,14 @@ pub fn pack_vertex(position: UVec3, normal: u32, block_type: u32, section_y: u32
         | section_y << 28u32
 }
 
+pub fn smoothstep01(x: f64) -> f64 {
+    x * x * (3.0 - 2.0 * x)
+}
+
+pub fn smootherstep01(x: f64) -> f64 {
+    x * x * x * ((6.0 * x * x) - (15.0 * x) + 10.0)
+}
+
 pub fn hash_u64(seed: u64, x: i32, z: i32) -> u64 {
     let mut hasher = fxhash::FxHasher::default();
     (seed, x, z).hash(&mut hasher);

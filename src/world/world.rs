@@ -17,8 +17,10 @@ use bevy::prelude::{Commands, Entity, IntoScheduleConfigs, Res, ResMut, Resource
 use bevy::tasks::{AsyncComputeTaskPool, Task, block_on, poll_once};
 use std::collections::HashMap;
 use std::sync::Arc;
+use bevy::utils::default;
+use crate::world::world_gen::biome_generator::BiomeGenerator;
 
-#[derive(Resource, Debug, Default)]
+#[derive(Resource, Debug)]
 pub struct World {
     pub(crate) loaded_chunks: HashMap<ChunkPos, Arc<Chunk>>,
 
@@ -33,6 +35,25 @@ pub struct World {
 
     chunk_entities: HashMap<ChunkPos, Entity>,
     chunk_sections: HashMap<ChunkPos, HashMap<i32, Option<ChunkSectionMesh>>>,
+
+    biome_generator: Arc<BiomeGenerator>,
+}
+
+impl Default for World {
+    fn default() -> Self {
+        Self {
+            loaded_chunks: HashMap::new(),
+            chunks_data_to_load: Vec::new(),
+            chunks_data_to_unload: Vec::new(),
+            chunks_mesh_to_load: Vec::new(),
+            chunks_mesh_to_unload: Vec::new(),
+            data_tasks: HashMap::new(),
+            mesh_tasks: HashMap::new(),
+            chunk_entities: HashMap::new(),
+            chunk_sections: HashMap::new(),
+            biome_generator: Arc::new(BiomeGenerator::new(1425)),
+        }
+    }
 }
 
 impl World {
@@ -89,6 +110,13 @@ impl WorldPlugin {
         let chunks_to_unload: Vec<_> = world.chunks_mesh_to_unload.drain(..).collect();
 
         for chunk_pos in chunks_to_unload {
+            let chunk = world.loaded_chunks.remove(&chunk_pos);
+            if let Some(_chunk) = chunk {
+                world.chunks_mesh_to_unload.push(chunk_pos);
+                world.mesh_tasks.retain(|(pos, _), _| pos != &chunk_pos);
+                world.chunk_sections.remove(&chunk_pos);
+            }
+
             let Some(chunk_id) = world.chunk_entities.remove(&chunk_pos) else {
                 continue;
             };
@@ -114,7 +142,10 @@ impl WorldPlugin {
                 continue;
             }
 
-            let task = task_pool.spawn::<Chunk>(async move { Self::generate_chunk_at(chunk_pos) });
+            let biome_gen = Arc::clone(&world.biome_generator);
+            let task = task_pool.spawn::<Chunk>(async move {
+                Self::generate_chunk_at(biome_gen, chunk_pos)
+            });
             world.data_tasks.insert(chunk_pos, task);
         }
     }
@@ -190,6 +221,11 @@ impl WorldPlugin {
             .chunk_sections
             .iter()
             .filter(|(chunk_pos, sections)| {
+                if world.chunks_data_to_unload.contains(chunk_pos)
+                    || !world.loaded_chunks.contains_key(chunk_pos)
+                    || world.chunks_mesh_to_unload.contains(&chunk_pos) {
+                    return false;
+                }
                 let expected = world.loaded_chunks[chunk_pos].sections.len();
                 sections.len() == expected
             })
@@ -211,7 +247,7 @@ impl WorldPlugin {
 
             for (_section_y, section) in sections.iter() {
                 let Some(section) = section.as_ref() else {
-                    continue;
+                    continue; // empty section, no mesh
                 };
 
                 all_vertices.extend_from_slice(&section.vertices);
@@ -260,9 +296,9 @@ impl WorldPlugin {
         }
     }
 
-    pub fn generate_chunk_at(_coord: ChunkPos) -> Chunk {
+    pub fn generate_chunk_at(biome_generator: Arc<BiomeGenerator>, coord: ChunkPos) -> Chunk {
         let mut chunk = Chunk::new();
-        chunk.generate();
+        chunk.generate(biome_generator, coord);
         chunk
     }
 }

@@ -3,6 +3,9 @@ use crate::constants::{CHUNK_SIZE, CHUNK_SIZE2};
 use crate::world::chunks::chunk_section::ChunkSection;
 use bevy::prelude::IVec3;
 use std::sync::{Arc, RwLock};
+use crate::world::chunks::chunk_pos::ChunkPos;
+use crate::world::world_gen::biome::Biome;
+use crate::world::world_gen::biome_generator::BiomeGenerator;
 
 #[derive(Default, Debug)]
 pub struct Chunk {
@@ -14,24 +17,47 @@ impl Chunk {
         Self { sections: vec![] }
     }
 
-    pub fn generate(&mut self) {
-        for _ in 0..2 {
+    pub fn generate(&mut self, biome_generator: Arc<BiomeGenerator>, chunk_pos: ChunkPos) {
+        let mut heights = [[0; CHUNK_SIZE as usize]; CHUNK_SIZE as usize];
+
+        for x in 0..CHUNK_SIZE {
+            for z in 0..CHUNK_SIZE {
+                let world_x = chunk_pos.0.x * CHUNK_SIZE + x;
+                let world_z = chunk_pos.0.y * CHUNK_SIZE + z;
+                let biomes = biome_generator.get_biomes_at(world_x as f64, world_z as f64);
+
+                let mut total_height = 0.0;
+                for (weight, biome) in biomes {
+                    let height = match biome {
+                        Biome::Plains => 20,
+                        Biome::Desert => 10,
+                        Biome::Ice => 50,
+                        Biome::Tundra => 35,
+                        Biome::Tropical => 70,
+                        _ => 0,
+                    };
+                    total_height += height as f64 * weight;
+                }
+                heights[x as usize][z as usize] = total_height as i32;
+            }
+        }
+
+        let max_height = heights.iter().flatten().max().copied().unwrap_or(0);
+        let needed_sections = ((max_height / CHUNK_SIZE) + 1).max(1);
+
+        for section_index in 0..needed_sections {
             let mut section = ChunkSection::new();
+            let section_base_y = section_index * CHUNK_SIZE;
 
             for x in 0..CHUNK_SIZE {
-                for y in 0..CHUNK_SIZE {
-                    for z in 0..CHUNK_SIZE {
-                        let dx = x as f32 - 8.0;
-                        let dy = y as f32 - 8.0;
-                        let dz = z as f32 - 8.0;
+                for z in 0..CHUNK_SIZE {
+                    let height = heights[x as usize][z as usize];
 
-                        let voxel = if dx * dx + dy * dy + dz * dz < 9.0 * 9.0 {
-                            Block(1)
-                        } else {
-                            Block(0)
-                        };
-
-                        section.set_by_xyz(x, y, z, voxel);
+                    for y in 0..CHUNK_SIZE {
+                        let world_y = section_base_y + y;
+                        if world_y <= height {
+                            section.set_by_xyz(x, y, z, Block(1));
+                        }
                     }
                 }
             }
