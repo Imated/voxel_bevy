@@ -1,11 +1,11 @@
 use crate::block::Block;
 use crate::constants::{CHUNK_SIZE, CHUNK_SIZE2};
-use crate::world::chunks::chunk_section::ChunkSection;
-use bevy::prelude::IVec3;
-use std::sync::{Arc, RwLock};
 use crate::world::chunks::chunk_pos::ChunkPos;
+use crate::world::chunks::chunk_section::ChunkSection;
 use crate::world::world_gen::biome::Biome;
 use crate::world::world_gen::biome_generator::BiomeGenerator;
+use bevy::prelude::IVec3;
+use std::sync::{Arc, RwLock};
 
 #[derive(Default, Debug)]
 pub struct Chunk {
@@ -29,20 +29,21 @@ impl Chunk {
                 let mut total_height = 0.0;
                 for (weight, biome) in biomes {
                     let height = match biome {
-                        Biome::Plains => 20,
-                        Biome::Desert => 10,
-                        Biome::Ice => 50,
-                        Biome::Tundra => 35,
-                        Biome::Tropical => 70,
-                        _ => 0,
+                        Biome::Plains => 20.0,
+                        Biome::Desert => 10.0,
+                        Biome::Ice => 50.0,
+                        Biome::Tundra => 35.0,
+                        Biome::Tropical => 70.0,
+                        _ => 0.0,
                     };
-                    total_height += height as f64 * weight;
+                    total_height += height * weight;
                 }
-                heights[x as usize][z as usize] = total_height as i32;
+
+                heights[x as usize][z as usize] = total_height.round() as i32;
             }
         }
 
-        let max_height = heights.iter().flatten().max().copied().unwrap_or(0);
+        let max_height = heights.iter().flatten().copied().max().unwrap_or(0);
         let needed_sections = ((max_height / CHUNK_SIZE) + 1).max(1);
 
         for section_index in 0..needed_sections {

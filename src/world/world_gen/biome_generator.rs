@@ -55,7 +55,7 @@ impl BiomeGenerator {
 
         Self {
             zoom: 120.0,
-            sharpness: 2.0,
+            sharpness: 5.0,
             k: 3,
             seed,
             warp_settings: WarpSettings {
@@ -105,6 +105,13 @@ impl BiomeGenerator {
 
         if let Some(kill_percent_threshold) = self.kill_percent_threshold {
             out.retain(|(percent, _)| *percent > kill_percent_threshold);
+
+            let new_sum: f64 = out.iter().map(|(w, _)| w).sum();
+            if new_sum > 0.0 {
+                for (weight, _) in out.iter_mut() {
+                    *weight /= new_sum;
+                }
+            }
         }
 
         out
