@@ -13,7 +13,6 @@ use bevy::prelude::{
     Commands, Entity, FromWorld, IntoScheduleConfigs, KeyCode, Plane3d, Res, ResMut,
     Resource, Transform, resource_changed,
 };
-use bevy::reflect::Array;
 use bevy::tasks::{AsyncComputeTaskPool, Task, block_on, poll_once};
 use bevy::utils::default;
 use indexmap::IndexSet;
@@ -35,14 +34,10 @@ pub struct World {
     chunk_mesh_tasks: HashMap<ChunkPos, Task<Mesh>>,
 
     chunk_entities: HashMap<ChunkPos, Entity>,
-
-    start_time: Instant,
-    finished_generating: bool,
-    finished_all: bool,
 }
 
 impl FromWorld for World {
-    fn from_world(world: &mut bevy::prelude::World) -> Self {
+    fn from_world(_world: &mut bevy::prelude::World) -> Self {
         Self {
             loaded_chunks: Default::default(),
             chunks_to_load: Default::default(),
@@ -51,9 +46,6 @@ impl FromWorld for World {
             chunk_data_tasks: Default::default(),
             chunk_mesh_tasks: Default::default(),
             chunk_entities: Default::default(),
-            start_time: Instant::now(),
-            finished_generating: false,
-            finished_all: false,
         }
     }
 }
@@ -192,8 +184,6 @@ fn start_data_tasks(mut world: ResMut<World>) {
     let World {
         chunk_data_tasks,
         chunks_to_load,
-        start_time,
-        finished_generating,
         ..
     } = &mut *world;
 
@@ -202,14 +192,6 @@ fn start_data_tasks(mut world: ResMut<World>) {
     for chunk_pos in chunks_to_load.drain(..count) {
         let task = task_pool.spawn::<Chunk>(async move { generate_chunk_at(chunk_pos) });
         chunk_data_tasks.insert(chunk_pos, task);
-    }
-
-    if chunk_data_tasks.is_empty() && chunks_to_load.is_empty() && !*finished_generating {
-        info!(
-            "Finished generating chunks! Generation took {:?}.",
-            start_time.elapsed()
-        );
-        *finished_generating = true;
     }
 }
 
@@ -222,9 +204,6 @@ fn start_mesh_tasks(mut world: ResMut<World>) {
         chunk_mesh_tasks,
         loaded_chunks,
         chunks_to_mesh,
-        start_time,
-        finished_all,
-        finished_generating,
         ..
     } = &mut *world;
 
@@ -240,18 +219,6 @@ fn start_mesh_tasks(mut world: ResMut<World>) {
         });
         chunk_mesh_tasks.insert(chunk_pos, task);
     }
-
-    if chunk_mesh_tasks.is_empty()
-        && chunks_to_mesh.is_empty()
-        && !*finished_all
-        && *finished_generating
-    {
-        info!(
-            "Finished meshing & generating chunks! Everything took {:?}.",
-            start_time.elapsed()
-        );
-        *finished_all = true;
-    }
 }
 
 fn join_data_tasks(mut world: ResMut<World>) {
@@ -260,12 +227,19 @@ fn join_data_tasks(mut world: ResMut<World>) {
         loaded_chunks,
         chunks_to_mesh,
         chunk_entities,
+        chunks_to_unload,
         ..
     } = &mut *world;
 
     chunk_data_tasks.retain(|&chunk_pos, task| {
         let status = block_on(poll_once(task));
         if let Some(chunk) = status {
+            // verify that the chunk wasnt queued to unload when this thread got run
+            // fixes stale entries when moving very fast
+            if chunks_to_unload.contains(&chunk_pos) {
+                return false;
+            }
+
             loaded_chunks.insert(chunk_pos, Arc::new(chunk));
 
             // only insert into chunks to mesh when that chunk is "ready" (all of its neighbors also have chunk data so can properly cull)
@@ -302,12 +276,19 @@ fn join_mesh_tasks(
     let World {
         chunk_mesh_tasks,
         chunk_entities,
+        chunks_to_unload,
         ..
     } = &mut *world;
 
     chunk_mesh_tasks.retain(|&chunk_pos, task| {
         let status = block_on(poll_once(task));
         if let Some(mesh) = status {
+            // verify that the chunk wasnt queued to unload when this thread got run
+            // fixes stale entries when moving very fast
+            if chunks_to_unload.contains(&chunk_pos) {
+                return false;
+            }
+
             let entity = commands
                 .spawn((
                     Transform::from_xyz(

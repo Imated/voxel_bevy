@@ -17,14 +17,14 @@ pub struct SkyboxShader {}
 
 impl MaterialExtension for SkyboxShader {
     fn specialize(
-        pipeline: &MaterialExtensionPipeline,
+        _pipeline: &MaterialExtensionPipeline,
         descriptor: &mut RenderPipelineDescriptor,
-        layout: &MeshVertexBufferLayoutRef,
-        key: MaterialExtensionKey<Self>,
+        _layout: &MeshVertexBufferLayoutRef,
+        _key: MaterialExtensionKey<Self>,
     ) -> Result<(), SpecializedMeshPipelineError> {
         if let Some(depth_stencil) = &mut descriptor.depth_stencil {
-            depth_stencil.depth_write_enabled = false;
-            depth_stencil.depth_compare = CompareFunction::Always;
+            depth_stencil.depth_write_enabled = Some(false);
+            depth_stencil.depth_compare = Some(CompareFunction::Always);
         }
 
         Ok(())

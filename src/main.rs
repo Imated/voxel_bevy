@@ -5,25 +5,24 @@ pub mod rendering;
 pub mod world;
 
 use crate::world::chunk::chunk_loader::{ChunkLoader, ChunkLoaderPlugin};
-use crate::world::world::{World, WorldPlugin};
-use bevy::DefaultPlugins;
+use crate::world::world::WorldPlugin;
 use bevy::app::{App, PluginGroup, PostStartup};
 use bevy::camera::Camera3d;
-use bevy::color::Color;
+use bevy::camera_controller::free_camera::{FreeCamera, FreeCameraPlugin, VerticalMovementAxis};
 use bevy::color::palettes::css::{GREEN, ORANGE_RED};
+use bevy::color::Color;
 use bevy::dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin, FrameTimeGraphConfig};
 use bevy::diagnostic::{
     FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin, SystemInformationDiagnosticsPlugin,
 };
-use bevy::ecs::bundle::Bundles;
 use bevy::light::light_consts::lux::OVERCAST_DAY;
 use bevy::light::{CascadeShadowConfigBuilder, DirectionalLight, GlobalAmbientLight};
 use bevy::math::{Quat, Vec3};
-use bevy::prelude::{Commands, Single, TextFont, Transform, Window, With, default};
-use bevy::window::{CursorGrabMode, CursorOptions, PresentMode, PrimaryWindow, WindowPlugin};
-use bevy_flycam::{FlyCam, MovementSettings, NoCameraPlayerPlugin};
+use bevy::prelude::{default, Commands, KeyCode, Single, TextFont, Transform, Window, WindowPlugin, With};
+use bevy::DefaultPlugins;
 use std::f32::consts::PI;
 use std::time::Duration;
+use bevy::window::PresentMode;
 
 fn main() {
     App::new()
@@ -51,33 +50,31 @@ fn main() {
                 },
             },
         ))
-        .insert_resource(MovementSettings {
-            sensitivity: 0.00006,
-            speed: 128.0,
-        })
-        .add_plugins(NoCameraPlayerPlugin)
+        .add_plugins(FreeCameraPlugin)
         .add_systems(PostStartup, setup)
         .run();
 }
 
-pub fn setup(
-    mut commands: Commands,
-    mut primary_cursor_options: Single<&mut CursorOptions, With<PrimaryWindow>>,
-) {
-    primary_cursor_options.grab_mode = CursorGrabMode::None;
-    primary_cursor_options.visible = true;
-
+pub fn setup(mut commands: Commands) {
     commands.spawn((
         Transform::from_xyz(0.0, 48.0, 0.0),
         Camera3d::default(),
         ChunkLoader::new(32),
-        FlyCam,
+        FreeCamera {
+            sensitivity: 0.2,
+            walk_speed: 128.0,
+            vertical_movement_axis: VerticalMovementAxis::Local,
+            key_up: KeyCode::Space,
+            key_down: KeyCode::ShiftLeft,
+            key_run: KeyCode::KeyR,
+            ..default()
+        },
     ));
 
     commands.spawn((
         DirectionalLight {
             illuminance: OVERCAST_DAY,
-            shadows_enabled: true,
+            shadow_maps_enabled: true,
             ..default()
         },
         Transform {
