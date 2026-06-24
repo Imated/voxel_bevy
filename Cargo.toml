@@ -1,0 +1,22 @@
+[package]
+name = "space-voxel"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ahash = "0.8.12"
+bevy = { version = "0.18.1", default-features = false, features = [
+    "default_app",
+    "default_platform",
+    "3d_bevy_render",
+    "scene",
+    "async_executor",
+    "bevy_dev_tools",
+    "dynamic_linking", # remove on release
+    "ui",
+]}
+bevy_flycam = "0.18.0"
+indexmap = "2.14.0"
+
+[target.x86_64-pc-windows-gnu]
+linker = "x86_64-w64-mingw32-gcc"
